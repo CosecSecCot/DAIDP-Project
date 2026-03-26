@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# Environment variables
+.env
+
+
+# Logs
+*.log
+logs/
+
+# Testing
+.coverage
+.coverage.*
+pytest_cache/
+htmlcov/
+
+# Build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDEs
+.vscode/
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# PostgreSQL dumps
+*.sql
+*.dump
+*.backup
+
+# Misc
+*.swp
+*~

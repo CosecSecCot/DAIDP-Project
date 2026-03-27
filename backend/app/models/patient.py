@@ -21,9 +21,10 @@ class Patient(Base):
 
 class PatientHealthProfile(Base):
     __tablename__ = "patient_health_profiles"
-    id                      = Column(Integer, primary_key=True, autoincrement=True)
-    patient_id              = Column(Integer, nullable=False, unique=True)
-    known_allergies         = Column(Text)
-    chronic_conditions      = Column(Text)
-    emergency_contact_name  = Column(String(150))
-    emergency_contact_phone = Column(String(30))
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    patient_id = Column(Integer, nullable=False, unique=True)
+    known_allergies = Column(Text)
+    chronic_conditions = Column(Text)
+    emergency_contact_name = Column(Text)
+    emergency_contact_phone = Column(Text)

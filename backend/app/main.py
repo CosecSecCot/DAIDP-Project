@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.config.database import engine, Base
-from app.routers import auth
+from app.routers import auth, hospitals
 
 import app.models.hospital
 import app.models.staff
@@ -20,6 +20,7 @@ app = FastAPI(
 )
 
 app.include_router(auth.router)
+app.include_router(hospitals.router)
 
 @app.get("/")
 def root():

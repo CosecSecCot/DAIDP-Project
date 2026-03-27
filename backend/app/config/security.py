@@ -79,3 +79,13 @@ def get_current_user_dependency(
             detail="Account is deactivated"
         )
     return user
+
+def require_roles(*roles):
+    def dependency(current_user: User = Depends(get_current_user_dependency)):
+        if current_user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {[r for r in roles]}"
+            )
+        return current_user
+    return dependency

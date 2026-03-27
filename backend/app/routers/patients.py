@@ -4,7 +4,6 @@ from typing import List
 
 from app.config.database import get_db
 from app.config.roles import admin_only, admin_doctor_staff, any_authenticated
-from app.models.auth import User
 from app.schemas.patient import (
     PatientCreate, PatientUpdate, PatientResponse,
     HealthProfileCreate, HealthProfileUpdate, HealthProfileResponse
@@ -25,7 +24,7 @@ router = APIRouter(tags=["Patients"])
 def create(
     data: PatientCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return create_patient(data, db)
 
@@ -34,7 +33,7 @@ def create(
 @router.get("/patients/", response_model=List[PatientResponse])
 def get_all(
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return get_all_patients(db)
 
@@ -44,7 +43,7 @@ def get_all(
 def get_one(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_patient_by_id(patient_id, db)
 
@@ -55,7 +54,7 @@ def update(
     patient_id: int,
     data: PatientUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return update_patient(patient_id, data, db)
 
@@ -65,7 +64,7 @@ def update(
 def delete(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return deactivate_patient(patient_id, db)
 
@@ -78,7 +77,7 @@ def create_profile(
     patient_id: int,
     data: HealthProfileCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return create_health_profile(patient_id, data, db)
 
@@ -88,7 +87,7 @@ def create_profile(
 def get_profile(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return get_health_profile(patient_id, db)
 
@@ -99,7 +98,7 @@ def update_profile(
     patient_id: int,
     data: HealthProfileUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return update_health_profile(patient_id, data, db)
 
@@ -108,6 +107,6 @@ def update_profile(
 def delete_profile(
     patient_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return delete_health_profile(patient_id, db)

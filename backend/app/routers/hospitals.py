@@ -9,7 +9,6 @@ from app.config.roles import (
     admin_doctor_staff,
     any_authenticated
 )
-from app.models.auth import User
 from app.schemas.hospital import (
     HospitalCreate, HospitalUpdate, HospitalResponse,
     DepartmentCreate, DepartmentUpdate, DepartmentResponse
@@ -31,7 +30,7 @@ router = APIRouter(tags=["Hospitals"])
 def create(
     data: HospitalCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return create_hospital(data, db, current_user)
 
@@ -40,7 +39,7 @@ def create(
 @router.get("/hospitals/", response_model=List[HospitalResponse])
 def get_all(
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_all_hospitals(db)
 
@@ -49,7 +48,7 @@ def get_all(
 def get_one(
     hospital_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_hospital_by_id(hospital_id, db)
 
@@ -60,7 +59,7 @@ def update(
     hospital_id: int,
     data: HospitalUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return update_hospital(hospital_id, data, db, current_user)
 
@@ -70,7 +69,7 @@ def update(
 def deactivate(
     hospital_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return deactivate_hospital(hospital_id, db)
 
@@ -83,7 +82,7 @@ def create_dept(
     hospital_id: int,
     data: DepartmentCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return create_department(hospital_id, data, db)
 
@@ -93,7 +92,7 @@ def create_dept(
 def get_all_depts(
     hospital_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_all_departments(hospital_id, db)
 
@@ -103,7 +102,7 @@ def get_one_dept(
     hospital_id: int,
     department_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_department_by_id(hospital_id, department_id, db)
 
@@ -115,7 +114,7 @@ def update_dept(
     department_id: int,
     data: DepartmentUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return update_department(hospital_id, department_id, data, db)
 
@@ -126,6 +125,6 @@ def delete_dept(
     hospital_id: int,
     department_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_doctor_staff)
+    current_user = Depends(admin_doctor_staff)
 ):
     return delete_department(hospital_id, department_id, db)

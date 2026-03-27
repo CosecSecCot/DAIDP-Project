@@ -4,7 +4,7 @@ from typing import List
 
 from app.config.database import get_db
 from app.config.roles import admin_only, admin_or_doctor, any_authenticated
-from app.models.auth import User
+from app.config.security import get_current_user_dependency
 from app.schemas.doctor import (
     DoctorCreate, DoctorUpdate, DoctorResponse,
     AffiliationCreate, AffiliationUpdate, AffiliationResponse,
@@ -27,7 +27,7 @@ router = APIRouter(tags=["Doctors"])
 def create(
     data: DoctorCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return create_doctor(data, db)
 
@@ -35,7 +35,7 @@ def create(
 @router.get("/doctors/", response_model=List[DoctorResponse])
 def get_all(
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_all_doctors(db)
 
@@ -44,7 +44,7 @@ def get_all(
 def get_one(
     doctor_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_doctor_by_id(doctor_id, db)
 
@@ -55,7 +55,7 @@ def update(
     doctor_id: int,
     data: DoctorUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_doctor)
+    current_user = Depends(admin_or_doctor)
 ):
     return update_doctor(doctor_id, data, db)
 
@@ -65,7 +65,7 @@ def update(
 def deactivate(
     doctor_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return deactivate_doctor(doctor_id, db)
 
@@ -78,7 +78,7 @@ def add_affiliation(
     doctor_id: int,
     data: AffiliationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return create_affiliation(doctor_id, data, db)
 
@@ -87,7 +87,7 @@ def add_affiliation(
 def list_affiliations(
     doctor_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_affiliations(doctor_id, db)
 
@@ -97,7 +97,7 @@ def remove_affiliation(
     doctor_id: int,
     affiliation_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_only)
+    current_user = Depends(admin_only)
 ):
     return delete_affiliation(doctor_id, affiliation_id, db)
 
@@ -110,7 +110,7 @@ def add_availability(
     doctor_id: int,
     data: AvailabilityCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_doctor)
+    current_user = Depends(admin_or_doctor)
 ):
     return create_availability(doctor_id, data, db)
 
@@ -119,7 +119,7 @@ def add_availability(
 def list_availability(
     doctor_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(any_authenticated)
+    current_user = Depends(any_authenticated)
 ):
     return get_availability(doctor_id, db)
 
@@ -130,7 +130,7 @@ def update_slot(
     slot_id: int,
     data: AvailabilityUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_doctor)
+    current_user = Depends(admin_or_doctor)
 ):
     return update_availability(doctor_id, slot_id, data, db)
 
@@ -140,6 +140,6 @@ def delete_slot(
     doctor_id: int,
     slot_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_doctor)
+    current_user = Depends(admin_or_doctor)
 ):
     return delete_availability(doctor_id, slot_id, db)

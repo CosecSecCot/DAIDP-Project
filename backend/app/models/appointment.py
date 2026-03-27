@@ -1,10 +1,16 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Date, Enum as SAEnum, Boolean
+from sqlalchemy import (
+    Column, Integer, String, Text,
+    DateTime, Date, Enum as SAEnum, Boolean
+)
 from app.config.database import Base
+from datetime import datetime
 import enum
 
+
 class AppointmentType(str, enum.Enum):
-    ONLINE   = "online"
-    WALK_IN  = "walk_in"
+    ONLINE  = "online"
+    WALK_IN = "walk_in"
+
 
 class AppointmentStatus(str, enum.Enum):
     SCHEDULED = "scheduled"
@@ -12,54 +18,71 @@ class AppointmentStatus(str, enum.Enum):
     CANCELLED = "cancelled"
     NO_SHOW   = "no_show"
 
+
 class BookedBy(str, enum.Enum):
     PATIENT = "patient"
     STAFF   = "staff"
     AI      = "ai"
+
 
 class AppointmentFrequency(str, enum.Enum):
     DAILY   = "daily"
     WEEKLY  = "weekly"
     MONTHLY = "monthly"
 
+
 class WaitlistStatus(str, enum.Enum):
     WAITING = "waiting"
     OFFERED = "offered"
     EXPIRED = "expired"
 
+
 class Appointment(Base):
     __tablename__ = "appointments"
+
     id                 = Column(Integer, primary_key=True, autoincrement=True)
     patient_id         = Column(Integer, nullable=False)
     doctor_id          = Column(Integer, nullable=False)
     hospital_id        = Column(Integer, nullable=False)
     department_id      = Column(Integer, nullable=False)
-    series_id          = Column(Integer)
+    series_id          = Column(Integer, nullable=True)
     scheduled_at       = Column(DateTime, nullable=False)
     duration_mins      = Column(Integer, default=30)
     type               = Column(SAEnum(AppointmentType), nullable=False)
     status             = Column(SAEnum(AppointmentStatus), default=AppointmentStatus.SCHEDULED)
     booked_by          = Column(SAEnum(BookedBy), nullable=False)
-    booked_by_staff_id = Column(Integer)
+    booked_by_staff_id = Column(Integer, nullable=True)
     notes              = Column(Text)
+    created_at         = Column(DateTime, default=datetime.utcnow)
+
 
 class RecurringAppointmentSeries(Base):
     __tablename__ = "recurring_appointment_series"
+
     id                = Column(Integer, primary_key=True, autoincrement=True)
     patient_id        = Column(Integer, nullable=False)
     doctor_id         = Column(Integer, nullable=False)
     hospital_id       = Column(Integer, nullable=False)
+    department_id     = Column(Integer, nullable=False)
     frequency         = Column(SAEnum(AppointmentFrequency), nullable=False)
     start_date        = Column(Date, nullable=False)
-    end_date          = Column(Date)
-    total_occurrences = Column(Integer)
+    end_date          = Column(Date, nullable=True)
+    total_occurrences = Column(Integer, nullable=True)
+    duration_mins     = Column(Integer, default=30)
+    start_time        = Column(String(10), nullable=False)
+    type              = Column(SAEnum(AppointmentType), nullable=False)
+    notes             = Column(Text)
+    created_at        = Column(DateTime, default=datetime.utcnow)
+
 
 class Waitlist(Base):
     __tablename__ = "waitlist"
+
     id             = Column(Integer, primary_key=True, autoincrement=True)
     patient_id     = Column(Integer, nullable=False)
     doctor_id      = Column(Integer, nullable=False)
     hospital_id    = Column(Integer, nullable=False)
-    preferred_date = Column(Date)
+    preferred_date = Column(Date, nullable=True)
     priority       = Column(Integer, default=0)
     status         = Column(SAEnum(WaitlistStatus), default=WaitlistStatus.WAITING)
+    added_at       = Column(DateTime, default=datetime.utcnow)

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from app.config.database import engine, Base
-from app.routers import auth, hospitals, doctors, staff, patients, appointments, medical
+from app.routers import auth, hospitals, doctors, staff, patients, appointments, medical, billing
 
 import app.models.admin
 import app.models.hospital
@@ -24,6 +24,7 @@ app.include_router(staff.router)
 app.include_router(patients.router)
 app.include_router(appointments.router)
 app.include_router(medical.router)
+app.include_router(billing.router)
 
 @app.get("/")
 def root():

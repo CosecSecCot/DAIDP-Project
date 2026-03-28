@@ -1,16 +1,23 @@
-from sqlalchemy import Column, Integer, String, Text, Date, DateTime, Enum as SAEnum, Boolean
+from sqlalchemy import (
+    Column, Integer, String, Text,
+    Date, DateTime, Enum as SAEnum, Boolean
+)
 from app.config.database import Base
+from datetime import datetime
 import enum
+
 
 class DiagnosisSeverity(str, enum.Enum):
     MILD     = "mild"
     MODERATE = "moderate"
     SEVERE   = "severe"
 
+
 class LabTestStatus(str, enum.Enum):
     ORDERED   = "ordered"
     PENDING   = "pending"
     COMPLETED = "completed"
+
 
 class DocumentType(str, enum.Enum):
     REPORT            = "report"
@@ -18,13 +25,16 @@ class DocumentType(str, enum.Enum):
     DISCHARGE_SUMMARY = "discharge_summary"
     OTHER             = "other"
 
+
 class UploadedBy(str, enum.Enum):
     DOCTOR  = "doctor"
     STAFF   = "staff"
     PATIENT = "patient"
 
+
 class MedicalRecord(Base):
     __tablename__ = "medical_records"
+
     id                    = Column(Integer, primary_key=True, autoincrement=True)
     appointment_id        = Column(Integer, nullable=False, unique=True)
     patient_id            = Column(Integer, nullable=False)
@@ -33,9 +43,12 @@ class MedicalRecord(Base):
     presenting_complaints = Column(Text)
     notes                 = Column(Text)
     follow_up_date        = Column(Date)
+    created_at            = Column(DateTime, default=datetime.utcnow)
+
 
 class Diagnosis(Base):
     __tablename__ = "diagnoses"
+
     id          = Column(Integer, primary_key=True, autoincrement=True)
     record_id   = Column(Integer, nullable=False)
     icd_code    = Column(String(20))
@@ -43,20 +56,24 @@ class Diagnosis(Base):
     severity    = Column(SAEnum(DiagnosisSeverity))
     is_chronic  = Column(Boolean, default=False)
 
+
 class LabTest(Base):
     __tablename__ = "lab_tests"
+
     id                 = Column(Integer, primary_key=True, autoincrement=True)
     record_id          = Column(Integer, nullable=False)
     patient_id         = Column(Integer, nullable=False)
     test_name          = Column(String(150), nullable=False)
-    ordered_at         = Column(DateTime)
+    ordered_at         = Column(DateTime, default=datetime.utcnow)
     result             = Column(Text)
     result_uploaded_at = Column(DateTime)
     status             = Column(SAEnum(LabTestStatus), default=LabTestStatus.ORDERED)
     notes              = Column(Text)
 
+
 class Document(Base):
     __tablename__ = "documents"
+
     id            = Column(Integer, primary_key=True, autoincrement=True)
     patient_id    = Column(Integer, nullable=False)
     record_id     = Column(Integer)
@@ -64,3 +81,4 @@ class Document(Base):
     file_name     = Column(String(255), nullable=False)
     file_url      = Column(Text, nullable=False)
     document_type = Column(SAEnum(DocumentType))
+    uploaded_at   = Column(DateTime, default=datetime.utcnow)

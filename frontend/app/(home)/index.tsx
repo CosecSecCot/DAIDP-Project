@@ -5,6 +5,7 @@ import { UserButton } from "@clerk/expo/native";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowRightIcon, PlusIcon } from "lucide-react-native";
+import ThemedIcon from "@/components/ThemedIcon";
 
 export default function Page() {
   const { user } = useUser();
@@ -18,7 +19,7 @@ export default function Page() {
         <Text className="text-2xl">Welcome, {user?.firstName}!</Text>
         <Button className="rounded-full">
           <Text>Get Started</Text>
-          <ArrowRightIcon size={18} />
+          <ThemedIcon icon={ArrowRightIcon} size={18} />
         </Button>
       </View>
     </SafeAreaView>

@@ -1,3 +1,122 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: #f7f7f4;
+    --foreground: #26251e;
+    --card: #eeeee8;
+    --card-foreground: #26251e;
+    --popover: #f2f1ed;
+    --popover-foreground: #26251e;
+    --primary: #26251e;
+    --primary-foreground: #f7f7f4;
+    --secondary: #ebeae4;
+    --secondary-foreground: #26251e;
+    --muted: #eaeae7;
+    --muted-foreground: #7a7973;
+    --accent: #e6e5df;
+    --accent-foreground: #26251e;
+    --destructive: #ffe2e1;
+    --destructive-foreground: #9e0812;
+    --border: #e2e2df;
+    --input: #f7f7f4;
+    --ring: #f54e00;
+    --chart-1: #f54e00;
+    --chart-2: #4a4a4a;
+    --chart-3: #8c8c8c;
+    --chart-4: #b0b0b0;
+    --chart-5: #d1d1d1;
+    --sidebar: #f7f7f4;
+    --sidebar-foreground: #26251e;
+    --sidebar-primary: #26251e;
+    --sidebar-primary-foreground: #f7f7f4;
+    --sidebar-accent: #e6e5df;
+    --sidebar-accent-foreground: #26251e;
+    --sidebar-border: #e2e2df;
+    --sidebar-ring: #f54e00;
+    --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
+    --font-serif: Georgia, serif;
+    --font-mono: JetBrains Mono, monospace;
+    --radius: 0.2rem;
+    --shadow-x: 0px;
+    --shadow-y: 4px;
+    --shadow-blur: 10px;
+    --shadow-spread: 0px;
+    --shadow-opacity: 0.05;
+    --shadow-color: #000000;
+    --shadow-2xs: 0px 4px 10px 0px hsl(0 0% 0% / 0.03);
+    --shadow-xs: 0px 4px 10px 0px hsl(0 0% 0% / 0.03);
+    --shadow-sm: 0px 4px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow: 0px 4px 10px 0px hsl(0 0% 0% / 0.05), 0px 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0px 4px 10px 0px hsl(0 0% 0% / 0.05), 0px 2px 4px -1px hsl(0 0% 0% / 0.05);
+    --shadow-lg: 0px 4px 10px 0px hsl(0 0% 0% / 0.05), 0px 4px 6px -1px hsl(0 0% 0% / 0.05);
+    --shadow-xl: 0px 4px 10px 0px hsl(0 0% 0% / 0.05), 0px 8px 10px -1px hsl(0 0% 0% / 0.05);
+    --shadow-2xl: 0px 4px 10px 0px hsl(0 0% 0% / 0.13);
+    --tracking-normal: -0.01em;
+    --spacing: 0.2rem;
+  }
+
+  .dark:root {
+    --background: #14120b;
+    --foreground: #edecec;
+    --card: #1b1913;
+    --card-foreground: #edecec;
+    --popover: #1b1913;
+    --popover-foreground: #edecec;
+    --primary: #edecec;
+    --primary-foreground: #14120b;
+    --secondary: #26241e;
+    --secondary-foreground: #edecec;
+    --muted: #211f18;
+    --muted-foreground: #969592;
+    --accent: #2a261e;
+    --accent-foreground: #edecec;
+    --destructive: #361510;
+    --destructive-foreground: #ff6467;
+    --border: #2a2822;
+    --input: #1d1b15;
+    --ring: #f54e00;
+    --chart-1: #f54e00;
+    --chart-2: #a1a1aa;
+    --chart-3: #71717a;
+    --chart-4: #52525b;
+    --chart-5: #3f3f46;
+    --sidebar: #14120b;
+    --sidebar-foreground: #edecec;
+    --sidebar-primary: #edecec;
+    --sidebar-primary-foreground: #14120b;
+    --sidebar-accent: #2a261e;
+    --sidebar-accent-foreground: #edecec;
+    --sidebar-border: #2a2822;
+    --sidebar-ring: #f54e00;
+    --font-sans: Inter, ui-sans-serif, sans-serif, system-ui;
+    --font-serif: Georgia, serif;
+    --font-mono: JetBrains Mono, monospace;
+    --radius: 0.2rem;
+    --shadow-x: 0px;
+    --shadow-y: 10px;
+    --shadow-blur: 20px;
+    --shadow-spread: 0px;
+    --shadow-opacity: 0.5;
+    --shadow-color: #000000;
+    --shadow-2xs: 0px 10px 20px 0px hsl(0 0% 0% / 0.25);
+    --shadow-xs: 0px 10px 20px 0px hsl(0 0% 0% / 0.25);
+    --shadow-sm: 0px 10px 20px 0px hsl(0 0% 0% / 0.50), 0px 1px 2px -1px hsl(0 0% 0% / 0.50);
+    --shadow: 0px 10px 20px 0px hsl(0 0% 0% / 0.50), 0px 1px 2px -1px hsl(0 0% 0% / 0.50);
+    --shadow-md: 0px 10px 20px 0px hsl(0 0% 0% / 0.50), 0px 2px 4px -1px hsl(0 0% 0% / 0.50);
+    --shadow-lg: 0px 10px 20px 0px hsl(0 0% 0% / 0.50), 0px 4px 6px -1px hsl(0 0% 0% / 0.50);
+    --shadow-xl: 0px 10px 20px 0px hsl(0 0% 0% / 0.50), 0px 8px 10px -1px hsl(0 0% 0% / 0.50);
+    --shadow-2xl: 0px 10px 20px 0px hsl(0 0% 0% / 1.25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

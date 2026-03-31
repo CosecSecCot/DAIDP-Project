@@ -8,6 +8,8 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useColorScheme } from "react-native";
+import { PortalHost } from "@rn-primitives/portal";
+import { NAV_THEME } from "@/lib/theme";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -19,8 +21,9 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={NAV_THEME[colorScheme]}>
         <Stack screenOptions={{ headerShown: false }} />
+        <PortalHost />
       </ThemeProvider>
     </ClerkProvider>
   );

@@ -2,7 +2,6 @@ import { AuthView } from "@clerk/expo/native";
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { View } from "react-native";
 
 export default function SignInScreen() {
   const { isSignedIn, isLoaded } = useAuth({ treatPendingAsSignedOut: false });
@@ -20,7 +19,7 @@ export default function SignInScreen() {
     if (isSignedIn) {
       router.replace("/");
     }
-  }, [isSignedIn, isLoaded]);
+  }, [isSignedIn, isLoaded, router]);
 
   return <AuthView mode="signInOrUp" />;
 }

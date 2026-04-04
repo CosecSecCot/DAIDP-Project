@@ -2,14 +2,9 @@ import { ClerkProvider } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Stack } from "expo-router";
 import "../global.css";
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { useColorScheme } from "react-native";
-import { PortalHost } from "@rn-primitives/portal";
-import { NAV_THEME } from "@/lib/theme";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { HeroUINativeProvider } from "heroui-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -18,13 +13,15 @@ if (!publishableKey) {
 }
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ThemeProvider value={NAV_THEME[colorScheme]}>
-        <Stack screenOptions={{ headerShown: false }} />
-        <PortalHost />
-      </ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <KeyboardProvider>
+          <HeroUINativeProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+          </HeroUINativeProvider>
+        </KeyboardProvider>
+      </GestureHandlerRootView>
     </ClerkProvider>
   );
 }

@@ -1,27 +1,94 @@
-import { Button } from "@/components/ui/button";
-import { Text } from "@/components/ui/text";
-import { useUser } from "@clerk/expo";
 import { UserButton } from "@clerk/expo/native";
-import { View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowRightIcon, PlusIcon } from "lucide-react-native";
-import ThemedIcon from "@/components/ThemedIcon";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { Button, ScrollShadow, Surface, TextArea } from "heroui-native";
+import { Text, TextInput, View } from "react-native";
+import {
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+} from "react-native-keyboard-controller";
 
-export default function Page() {
-  const { user } = useUser();
-
+export default function StickyChatBoxExample() {
   return (
-    <SafeAreaView className="flex-1">
-      <View className="absolute top-12 right-6 w-10 h-10 rounded-[18px] overflow-hidden">
-        <UserButton />
+    <View className="flex-1 py-safe-offset-4 px-4 bg-background">
+      <View className="flex-1 gap-4">
+        <View className="flex-row justify-between">
+          <Text className="text-foreground text-2xl font-semibold">
+            AI Frontdesk
+          </Text>
+          <View className="h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-foreground/60">
+            <UserButton />
+          </View>
+        </View>
+        <ScrollShadow
+          LinearGradientComponent={LinearGradient}
+          className="h-9/10"
+        >
+          <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
+            <Text className="mb-4 text-2xl font-bold text-foreground">
+              Long Content
+            </Text>
+            <Text
+              selectable
+              className="mb-4 text-base leading-6 text-foreground"
+            >
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+              enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+            </Text>
+            <Text className="mb-4 text-base leading-6 text-foreground">
+              Sed ut perspiciatis unde omnis iste natus error sit voluptatem
+              accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
+              quae ab illo inventore veritatis et quasi architecto beatae vitae.
+            </Text>
+            <Text className="mb-4 text-base leading-6 text-foreground">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+              enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+            </Text>
+            <Text className="mb-4 text-base leading-6 text-foreground">
+              Sed ut perspiciatis unde omnis iste natus error sit voluptatem
+              accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
+              quae ab illo inventore veritatis et quasi architecto beatae vitae.
+            </Text>
+            <Text className="mb-4 text-base leading-6 text-foreground">
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+              enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+            </Text>
+            <Text className="mb-4 text-base leading-6 text-foreground">
+              Sed ut perspiciatis unde omnis iste natus error sit voluptatem
+              accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
+              quae ab illo inventore veritatis et quasi architecto beatae vitae.
+            </Text>
+          </KeyboardAwareScrollView>
+        </ScrollShadow>
       </View>
-      <View className="flex-1 items-center justify-center gap-4">
-        <Text className="text-2xl">Welcome, {user?.firstName}!</Text>
-        <Button className="rounded-full">
-          <Text>Get Started</Text>
-          <ThemedIcon icon={ArrowRightIcon} size={18} />
-        </Button>
-      </View>
-    </SafeAreaView>
+      <StickyChatInput />
+    </View>
+  );
+}
+
+function StickyChatInput() {
+  return (
+    <KeyboardStickyView
+      style={{ zIndex: 100 }}
+      offset={{ closed: 0, opened: 20 }}
+    >
+      <Surface className="flex-row justify-end gap-2 p-2 border border-separator-tertiary min-h-20">
+        <TextInput
+          multiline
+          numberOfLines={10}
+          placeholder="Ask me anything..."
+          onSubmitEditing={() => console.log("submit")}
+          className="flex-1 align-top"
+        />
+        <View className="justify-end">
+          <Button size="sm" isIconOnly onPress={() => console.log("send")}>
+            <Ionicons name="arrow-up" size={20} color="black" />
+          </Button>
+        </View>
+      </Surface>
+    </KeyboardStickyView>
   );
 }

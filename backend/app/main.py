@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from app.config.database import engine, Base
-from app.routers import auth, hospitals, doctors, staff, patients, appointments, medical, billing
+from app.routers import auth, hospitals, doctors, staff, patients, appointments, medical, billing,ai
 
 import app.models.admin
 import app.models.hospital
@@ -12,6 +12,7 @@ import app.models.appointment
 import app.models.medical
 import app.models.prescription
 import app.models.billing
+# import app.models.ai
 
 Base.metadata.create_all(bind=engine)
 
@@ -25,6 +26,7 @@ app.include_router(patients.router)
 app.include_router(appointments.router)
 app.include_router(medical.router)
 app.include_router(billing.router)
+app.include_router(ai.router)
 
 @app.get("/")
 def root():

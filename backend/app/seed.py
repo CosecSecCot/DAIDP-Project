@@ -3,7 +3,7 @@ from .models.hospital import Hospital, Department, HospitalType
 from .models.staff import Staff, StaffRole
 from .models.doctor import Doctor, DoctorHospitalAffiliation, DoctorAvailability, AffiliationRole
 from .models.patient import Patient, PatientHealthProfile, Gender
-from .models.appointment import Appointment, AppointmentType, AppointmentStatus, BookedBy
+from .models.appointment import Appointment, AppointmentType, AppointmentStatus, BookedBy, RecurringAppointmentSeries, Waitlist, AppointmentFrequency, WaitlistStatus
 from .models.medical import MedicalRecord, Diagnosis, LabTest, Document, DiagnosisSeverity, LabTestStatus, DocumentType, UploadedBy
 from .models.prescription import Prescription, PrescriptionItem
 from .models.billing import Invoice, Payment, InvoiceStatus, PaymentMethod
@@ -222,6 +222,40 @@ def seed_database():
             )
         ]
         db.add_all(appointments)
+        db.commit()
+
+        # Seed Recurring Appointment Series
+        recurring_series = [
+            RecurringAppointmentSeries(
+                patient_id=1,
+                doctor_id=1,
+                hospital_id=1,
+                department_id=1,
+                frequency=AppointmentFrequency.WEEKLY,
+                start_date=date.today(),
+                end_date=date.today() + timedelta(weeks=4),
+                total_occurrences=4,
+                duration_mins=30,
+                start_time="10:00",
+                type=AppointmentType.WALK_IN,
+                notes="Weekly checkup series"
+            )
+        ]
+        db.add_all(recurring_series)
+        db.commit()
+
+        # Seed Waitlist
+        waitlist_entries = [
+            Waitlist(
+                patient_id=2,
+                doctor_id=2,
+                hospital_id=2,
+                preferred_date=date.today() + timedelta(days=3),
+                priority=1,
+                status=WaitlistStatus.WAITING
+            )
+        ]
+        db.add_all(waitlist_entries)
         db.commit()
 
         # Seed Medical Records

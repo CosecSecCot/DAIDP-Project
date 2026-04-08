@@ -1,84 +1,92 @@
-# routers/ai.py
-
 """
-AI Router (Production Ready)
+AI Router
 
 Responsibilities:
-- Expose AI endpoint
-- Validate request
+- Expose AI chat endpoint
+- Accept both text + structured payload
 - Call orchestrator
-- Handle errors safely
+- Return structured response
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
-import logging
+from typing import Optional, Union, Dict, Any
 
 from app.AI.orchestrator import handle_message
 
 
-# ===============================
-# LOGGER
-# ===============================
-
-logger = logging.getLogger("ai.router")
-logger.setLevel(logging.INFO)
+router = APIRouter(
+    prefix="/ai",
+    tags=["AI"]
+)
 
 
 # ===============================
-# REQUEST / RESPONSE MODELS
+# REQUEST SCHEMA (FIXED)
 # ===============================
 
 class ChatRequest(BaseModel):
-    user_id: int = Field(..., example=1)
-    message: str = Field(..., example="I want to book appointment")
+    user_id: int = Field(..., description="User ID")
+
+    # ✅ FIX: allow both string and dict
+    message: Union[str, Dict[str, Any]] = Field(
+        ...,
+        description="User message OR structured action payload"
+    )
+
+
+# ===============================
+# RESPONSE SCHEMA
+# ===============================
+
+class UIComponent(BaseModel):
+    component: str
+    data: Optional[Dict[str, Any]] = None
+
 
 class ChatResponse(BaseModel):
-    response: str
+    message: str
+    current_state: str
+    ui: UIComponent
+    actions: list
 
 
 # ===============================
-# ROUTER
+# MAIN ENDPOINT
 # ===============================
-
-router = APIRouter(prefix="/ai", tags=["AI"])
-
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     """
-    Main AI endpoint
-
-    Example:
-    POST /ai/chat
-    {
-        "user_id": 1,
-        "message": "Book appointment tomorrow"
-    }
+    Main AI chat endpoint
     """
 
     try:
-        logger.info(f"[AI] User {request.user_id}: {request.message}")
-
-        result = handle_message(
+        response = handle_message(
             user_id=request.user_id,
             message=request.message
         )
 
-        return ChatResponse(response=result["response"])
+        # safety validation
+        if not isinstance(response, dict):
+            raise ValueError("Invalid AI response type")
 
-    except ValueError as ve:
-        logger.warning(f"[AI] Validation error: {str(ve)}")
+        if "message" not in response:
+            raise ValueError("Missing message field")
 
-        raise HTTPException(
-            status_code=400,
-            detail=str(ve)
-        )
+        # ensure ui exists
+        if "ui" not in response:
+            response["ui"] = {"component": "none"}
+
+        if "actions" not in response:
+            response["actions"] = []
+
+        return response
 
     except Exception as e:
-        logger.error(f"[AI] Internal error: {str(e)}")
+        print("[AI ROUTER ERROR]", str(e))
 
         raise HTTPException(
             status_code=500,
-            detail="Internal server error"
+            detail="AI processing failed"
         )

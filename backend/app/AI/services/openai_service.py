@@ -1,177 +1,208 @@
-# ai/services/openai_service.py
-
 """
-Production-grade OpenAI service wrapper.
+OpenAI service layer for AI front desk.
 
-Features:
-- Retry mechanism
-- Timeout handling
-- Structured response enforcement
-- Logging
-- Centralized LLM control
-
-IMPORTANT:
-Do NOT call OpenAI directly anywhere else.
-Always use this service.
+Responsibilities:
+- Call OpenAI API
+- Enforce structured JSON output
+- Inject system prompt
+- Pass conversation context
+- Handle errors safely
 """
 
-import os
-import time
 import json
-import logging
-from typing import Optional, Dict, Any
+from typing import Dict, Any, List
 
 from openai import OpenAI
-from dotenv import load_dotenv
+
+from app.AI.session_store import get_history
+
+# ===============================
+# INIT CLIENT
+# ===============================
+
+client = OpenAI()
 
 
 # ===============================
-# ENV SETUP
+# SYSTEM PROMPT
 # ===============================
 
-load_dotenv()
+SYSTEM_PROMPT = """
+You are a professional hospital front desk assistant.
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+Your behavior:
+- Talk like a human receptionist
+- Be polite, helpful, and clear
+- Do NOT jump directly to booking
+- Ask follow-up questions step by step
+- Understand patient symptoms before suggesting a doctor
+1. When asking questions, use MCQ format.
+2. Do NOT ask open-ended questions when options can be provided.
+3. Use "mcq" component when appropriate
+4. Use "none" ONLY when:
+   - giving information
+   - confirming booking
+- Once enough information is gathered, recommend any doctor from list of doctors
+- Then trigger actions like fetching slots
+- Guide user until appointment is booked
 
-if not OPENAI_API_KEY:
-    raise RuntimeError("OPENAI_API_KEY not found in environment")
+STRICT RESPONSE FORMAT (JSON ONLY):
+
+{
+  "message": "string",
+  "current_state": "string",
+  "ui": {
+    "component": "mcq | none | timeslot_picker | confirmation",
+    "data": {}
+  },
+  "actions": []
+}
+
+EXAMPLES:
+
+If asking duration:
+{
+  "message": "How long have you had fever?",
+  "current_state": "collecting_symptoms",
+  "ui": {
+    "component": "mcq",
+    "data": {
+      "question": "Duration of fever?",
+      "options": [
+        "Less than 1 day",
+        "1-3 days",
+        "More than 3 days"
+      ]
+    }
+  },
+  "actions": []
+}
+
+If asking symptoms:
+{
+  "message": "Do you have any of these symptoms?",
+  "current_state": "collecting_symptoms",
+  "ui": {
+    "component": "mcq",
+    "data": {
+      "question": "Select symptoms",
+      "options": [
+        "Cough",
+        "Body pain",
+        "Headache",
+        "None"
+      ]
+    }
+  },
+  "actions": []
+}
+
+IMPORTANT:
+- Prefer MCQ over text
+- Be structured
+RULES:
+- Always return valid JSON
+- Never return plain text
+- Use "actions" only when backend work is needed
+- Use "ui.component" values:
+  - "none"
+  - "mcq"
+  - "timeslot_picker"
+  - "confirmation"
+
+STATE GUIDE:
+- idle
+- collecting_symptoms
+- suggest_doctor
+- awaiting_slot_selection
+- completed
+"""
 
 
 # ===============================
-# CLIENT INITIALIZATION
+# MAIN FUNCTION
 # ===============================
 
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-
-# ===============================
-# CONFIGURATION
-# ===============================
-
-DEFAULT_MODEL = "gpt-4o-mini"
-MAX_RETRIES = 3
-RETRY_DELAY = 1  # seconds
-TIMEOUT_SECONDS = 10
-
-
-# ===============================
-# LOGGER
-# ===============================
-
-logger = logging.getLogger("ai.openai")
-logger.setLevel(logging.INFO)
-
-
-# ===============================
-# CORE FUNCTION
-# ===============================
-
-def call_llm(
-    system_prompt: str,
-    user_message: str,
-    model: str = DEFAULT_MODEL,
-    temperature: float = 0.0,
-    max_tokens: int = 500,
-    expect_json: bool = False
-) -> str:
+def generate_ai_response(
+    user_id: int,
+    message: str,
+    state: str
+) -> Dict[str, Any]:
     """
-    Main LLM call function.
-
-    Args:
-        system_prompt: instruction prompt
-        user_message: user input
-        model: OpenAI model
-        temperature: randomness
-        max_tokens: response limit
-        expect_json: enforce JSON output
-
-    Returns:
-        response string (or JSON string)
-    """
-
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_message}
-    ]
-
-    for attempt in range(MAX_RETRIES):
-        try:
-            start_time = time.time()
-
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens
-            )
-
-            duration = time.time() - start_time
-
-            content = response.choices[0].message.content.strip()
-
-            logger.info(f"[OpenAI] Success | Time: {duration:.2f}s")
-
-            # OPTIONAL: enforce JSON
-            if expect_json:
-                return _safe_json_parse(content)
-
-            return content
-
-        except Exception as e:
-            logger.error(f"[OpenAI] Attempt {attempt+1} failed: {str(e)}")
-
-            if attempt < MAX_RETRIES - 1:
-                time.sleep(RETRY_DELAY)
-            else:
-                raise RuntimeError("OpenAI failed after retries")
-
-
-# ===============================
-# JSON PARSER (VERY IMPORTANT)
-# ===============================
-
-def _safe_json_parse(text: str) -> Dict[str, Any]:
-    """
-    Safely parse LLM JSON output.
-
-    Handles:
-    - ```json blocks
-    - invalid formatting
+    Main OpenAI call
     """
 
     try:
-        # remove markdown
-        text = text.replace("```json", "").replace("```", "").strip()
+        # ===============================
+        # GET HISTORY
+        # ===============================
 
-        return json.loads(text)
+        history = get_history(user_id, limit=10)
 
-    except json.JSONDecodeError as e:
-        logger.error(f"[OpenAI] JSON parse failed: {text}")
+        messages: List[Dict[str, str]] = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT + f"\n\nCurrent state: {state}"
+            }
+        ]
 
-        raise ValueError("Invalid JSON from LLM")
+        # add history
+        for h in history:
+            messages.append({
+                "role": h["role"],
+                "content": h["content"]
+            })
 
+        # add current message
+        messages.append({
+            "role": "user",
+            "content": message
+        })
 
-# ===============================
-# HIGH LEVEL HELPERS
-# ===============================
+        # ===============================
+        # OPENAI CALL
+        # ===============================
 
-def call_llm_json(system_prompt: str, user_message: str) -> Dict[str, Any]:
-    """
-    Shortcut for JSON responses
-    """
-    return call_llm(
-        system_prompt=system_prompt,
-        user_message=user_message,
-        expect_json=True
-    )
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            response_format={"type": "json_object"},
+            temperature=0.3
+        )
 
+        content = response.choices[0].message.content
 
-def call_llm_text(system_prompt: str, user_message: str) -> str:
-    """
-    Shortcut for text responses
-    """
-    return call_llm(
-        system_prompt=system_prompt,
-        user_message=user_message,
-        expect_json=False
-    )
+        # ===============================
+        # PARSE JSON
+        # ===============================
+
+        data = json.loads(content)
+
+        # ===============================
+        # VALIDATION (VERY IMPORTANT)
+        # ===============================
+
+        if "message" not in data:
+            raise ValueError("Missing message field")
+
+        if "current_state" not in data:
+            data["current_state"] = state
+
+        if "ui" not in data:
+            data["ui"] = {"component": "none"}
+
+        if "actions" not in data:
+            data["actions"] = []
+
+        return data
+
+    except Exception as e:
+        print("[OPENAI ERROR]", str(e))
+
+        # fallback response
+        return {
+            "message": "Sorry, I am having trouble understanding. Please try again.",
+            "current_state": state,
+            "ui": {"component": "none"},
+            "actions": []
+        }

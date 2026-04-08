@@ -14,6 +14,7 @@ def create_doctor(data: DoctorCreate, db: Session):
     doctor = Doctor(
         full_name           = data.full_name,
         email               = data.email,
+        hashed_password="test123",
         phone               = data.phone,
         specialisation      = data.specialisation,
         qualification       = data.qualification,

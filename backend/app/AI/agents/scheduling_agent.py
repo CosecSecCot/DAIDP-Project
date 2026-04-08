@@ -1,31 +1,28 @@
-# ai/agents/scheduling_agent.py
-
 """
-Production-grade scheduling agent.
+Production-grade scheduling agent (fixed)
 
 Features:
-- Smart doctor selection
-- Slot generation
-- Conflict avoidance
+- Doctor grouping
+- Proper datetime slots
 - Load balancing
-- Recommendation engine
+- Clean UI-ready output
+- Correct date handling
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
 from collections import defaultdict
 
 from app.config.database import SessionLocal
 from app.models.doctor import Doctor, DoctorAvailability
 from app.models.appointment import Appointment
-from app.models.hospital import Department
 
 
 db = SessionLocal()
 
 
 # ===============================
-# SPECIALITY MAPPING (AI TRIAGE)
+# SPECIALITY MAPPING
 # ===============================
 
 SYMPTOM_TO_SPECIALITY = {
@@ -39,9 +36,7 @@ SYMPTOM_TO_SPECIALITY = {
 
 
 def infer_speciality(entities: Dict) -> str:
-    """
-    Infer doctor speciality from entities
-    """
+
     if "doctor_speciality" in entities:
         return entities["doctor_speciality"]
 
@@ -55,13 +50,10 @@ def infer_speciality(entities: Dict) -> str:
 
 
 # ===============================
-# DOCTOR SELECTION
+# DOCTOR FETCH
 # ===============================
 
 def get_doctors_by_speciality(speciality: str, hospital_id: int):
-    """
-    Get doctors filtered by speciality
-    """
 
     return db.query(Doctor).filter(
         Doctor.specialisation.ilike(f"%{speciality}%"),
@@ -70,13 +62,10 @@ def get_doctors_by_speciality(speciality: str, hospital_id: int):
 
 
 # ===============================
-# LOAD BALANCING (IMPORTANT)
+# LOAD CALCULATION
 # ===============================
 
 def get_doctor_load(doctor_ids: List[int], date: datetime):
-    """
-    Count number of appointments per doctor for a day
-    """
 
     loads = defaultdict(int)
 
@@ -97,9 +86,6 @@ def get_doctor_load(doctor_ids: List[int], date: datetime):
 # ===============================
 
 def generate_slots(avail: DoctorAvailability, date_obj: datetime):
-    """
-    Generate time slots for one doctor
-    """
 
     slots = []
 
@@ -125,6 +111,26 @@ def generate_slots(avail: DoctorAvailability, date_obj: datetime):
 
 
 # ===============================
+# DATE RESOLUTION
+# ===============================
+
+def resolve_date(entities: Dict) -> datetime:
+
+    if "date" in entities:
+        try:
+            return datetime.strptime(entities["date"], "%Y-%m-%d")
+        except:
+            pass
+
+    text = entities.get("raw_text", "").lower()
+
+    if "tomorrow" in text:
+        return datetime.now() + timedelta(days=1)
+
+    return datetime.now()
+
+
+# ===============================
 # MAIN FUNCTION
 # ===============================
 
@@ -133,67 +139,79 @@ def get_available_slots(
     hospital_id: int,
     entities: Dict
 ) -> Dict:
-    """
-    Main scheduling function
-    """
 
-    # Step 1: resolve date
-    if "date" in entities:
-        date_obj = datetime.strptime(entities["date"], "%Y-%m-%d")
-    else:
-        date_obj = datetime.now()
-
+    # STEP 1: resolve date
+    date_obj = resolve_date(entities)
     weekday = date_obj.weekday()
 
-    # Step 2: infer speciality
+    # STEP 2: infer speciality
     speciality = infer_speciality(entities)
 
-    # Step 3: fetch doctors
+    # STEP 3: get doctors
     doctors = get_doctors_by_speciality(speciality, hospital_id)
 
     if not doctors:
         return {"slots": [], "recommended": None}
 
-    doctor_ids = [d.id for d in doctors]
+    doctor_map = {d.id: d for d in doctors}
+    doctor_ids = list(doctor_map.keys())
 
-    # Step 4: load balancing
+    # STEP 4: load balancing
     loads = get_doctor_load(doctor_ids, date_obj)
 
-    # Step 5: fetch availability
+    # STEP 5: availability
     availabilities = db.query(DoctorAvailability).filter(
         DoctorAvailability.doctor_id.in_(doctor_ids),
         DoctorAvailability.day_of_week == weekday,
         DoctorAvailability.is_active == True
     ).all()
 
-    all_slots = []
+    doctor_slots = defaultdict(list)
 
-    # Step 6: generate slots
+    # STEP 6: generate slots
     for avail in availabilities:
+
         slots = generate_slots(avail, date_obj)
 
         for slot in slots:
-            all_slots.append({
-                "doctor_id": avail.doctor_id,
+            doctor_slots[avail.doctor_id].append({
                 "time": slot,
                 "load": loads[avail.doctor_id]
             })
 
-    if not all_slots:
+    if not doctor_slots:
         return {"slots": [], "recommended": None}
 
-    # Step 7: sort by load (LESS load first)
-    all_slots.sort(key=lambda x: (x["load"], x["time"]))
+    # STEP 7: FORMAT OUTPUT (IMPORTANT)
+    doctors_output = []
 
-    # Step 8: format output
-    formatted_slots = [
-        s["time"].strftime("%H:%M") for s in all_slots[:5]
-    ]
+    for doc_id, slots in doctor_slots.items():
 
-    recommended = all_slots[0]["time"].strftime("%H:%M")
+        doctor = doctor_map[doc_id]
+
+        # sort slots by load + time
+        slots.sort(key=lambda x: (x["load"], x["time"]))
+
+        formatted = []
+
+        for s in slots[:5]:
+            formatted.append({
+                "display": s["time"].strftime("%d %b | %I:%M %p"),
+                "value": s["time"].strftime("%Y-%m-%dT%H:%M:%S")
+            })
+
+        doctors_output.append({
+            "doctor_id": doc_id,
+            "doctor_name": doctor.full_name,
+            "slots": formatted
+        })
+
+    # STEP 8: RECOMMENDED SLOT
+    best_doc = min(doctor_slots.items(), key=lambda x: x[1][0]["load"])
+    best_slot = best_doc[1][0]["time"]
 
     return {
-        "doctor_id": all_slots[0]["doctor_id"],
-        "slots": formatted_slots,
-        "recommended": recommended
+        "doctors": doctors_output,
+        "recommended": best_slot.strftime("%Y-%m-%dT%H:%M:%S"),
+        "date": date_obj.strftime("%Y-%m-%d")
     }

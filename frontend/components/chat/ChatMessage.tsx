@@ -13,7 +13,7 @@ export default function ChatMessage({
   return (
     <View
       className={cn(
-        "mb-4 gap-2",
+        "mb-4 gap-4",
         message.role === "user" ? "items-end" : "items-start",
       )}
     >

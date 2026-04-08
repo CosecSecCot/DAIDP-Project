@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import {
-  BottomSheet,
   Button,
   RadioGroup,
   Label,
   Radio,
   cn,
   Description,
+  Card,
 } from "heroui-native";
 import { MCQQuestion } from "@/types/chat";
 import { withUniwind } from "uniwind";
@@ -22,7 +22,6 @@ export default function MCQBottomSheetRenderer({
   questions: MCQQuestion[];
   onSubmit: (answers: Record<string, string>) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
@@ -49,7 +48,6 @@ export default function MCQBottomSheetRenderer({
 
   const handleSubmit = () => {
     onSubmit(answers); // 🔥 send metadata
-    setIsOpen(false);
   };
 
   const isLast = currentIndex === questions.length - 1;
@@ -57,60 +55,65 @@ export default function MCQBottomSheetRenderer({
   const selected = answers[currentQuestion.id];
 
   return (
-    <BottomSheet isOpen={isOpen} onOpenChange={setIsOpen}>
-      <BottomSheet.Trigger asChild>
-        <Button size="sm" variant="outline">
-          Answer Question
-        </Button>
-      </BottomSheet.Trigger>
-      <BottomSheet.Portal>
-        <BottomSheet.Overlay />
-
-        <BottomSheet.Content>
-          <View className="mb-8 gap-2 items-center">
-            <BottomSheet.Title className="text-center">
-              {currentQuestion.text}
-            </BottomSheet.Title>
-            {/* <BottomSheet.Description className="text-center"></BottomSheet.Description> */}
-          </View>
-          <View className="mb-8 gap-2">
-            <RadioGroup
-              value={selected}
-              onValueChange={handleSelect}
-              className="gap-2"
-              variant="secondary"
-            >
-              {currentQuestion.options.map((opt) => (
-                <OptionItem key={opt} value={opt} label={opt} />
-              ))}
-            </RadioGroup>
-          </View>
-          <View className="gap-3">
-            {!isFirst && (
-              <Button variant="secondary" onPress={handleBack}>
-                Back
-              </Button>
-            )}
-            {!isLast ? (
-              <Button isDisabled={!selected} onPress={handleNext}>
-                Next
-              </Button>
-            ) : (
-              <Button isDisabled={!selected} onPress={handleSubmit}>
-                Submit
-              </Button>
-            )}
-            <Button variant="ghost" onPress={() => setIsOpen(false)}>
-              Cancel
-            </Button>
-          </View>
-        </BottomSheet.Content>
-      </BottomSheet.Portal>
-    </BottomSheet>
+    <Card className="gap-4">
+      <Card.Header className="gap-2">
+        {questions.length > 1 && (
+          <Text className="font-semibold text-xl text-accent">
+            {currentIndex + 1} / {questions.length}
+          </Text>
+        )}
+        <Text className="font-semibold text-lg text-surface-foreground">
+          {currentQuestion.text}
+        </Text>
+      </Card.Header>
+      <Card.Body>
+        <RadioGroup
+          value={selected}
+          onValueChange={handleSelect}
+          className="gap-2"
+          variant="secondary"
+        >
+          {currentQuestion.options.map((opt) => (
+            <OptionItem key={opt} value={opt} label={opt} />
+          ))}
+        </RadioGroup>
+      </Card.Body>
+      <Card.Footer className="gap-3">
+        {!isLast ? (
+          <Button isDisabled={!selected} onPress={handleNext}>
+            <Button.Label>Next</Button.Label>
+            <StyledIonicons
+              name="chevron-forward"
+              size={16}
+              className="text-accent-foreground"
+            />
+          </Button>
+        ) : (
+          <Button isDisabled={!selected} onPress={handleSubmit}>
+            <Button.Label>Submit</Button.Label>
+            <StyledIonicons
+              name="checkmark"
+              size={16}
+              className="text-accent-foreground"
+            />
+          </Button>
+        )}
+        {!isFirst && (
+          <Button variant="ghost" onPress={handleBack}>
+            <StyledIonicons
+              name="chevron-back"
+              size={16}
+              className="text-foreground"
+            />
+            <Button.Label>Back</Button.Label>
+          </Button>
+        )}
+      </Card.Footer>
+    </Card>
   );
 }
 
-interface ShippingOptionItemProps {
+interface OptionItemProps {
   /** The value for the radio item */
   value: string;
   /** The label text */
@@ -133,7 +136,7 @@ const OptionItem = ({
   description,
   containerClassName,
   indicatorClassName,
-}: ShippingOptionItemProps) => {
+}: OptionItemProps) => {
   return (
     <RadioGroup.Item value={value}>
       {({ isSelected }) => (

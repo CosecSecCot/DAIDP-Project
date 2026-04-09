@@ -2,6 +2,9 @@ from typing import Dict, Any
 import json
 
 from app.AI.session_store import (
+    append_history,
+    complete_active_history,
+    ensure_chat_session,
     get_session,
     update_session,
     clear_session
@@ -16,10 +19,25 @@ from app.AI.agents.booking_agent import book_appointment
 # MAIN ENTRY
 # ===============================
 
-def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
+def handle_message(user_id: int, message: Any, chat_id: int | None = None) -> Dict[str, Any]:
+    chat_session = ensure_chat_session(
+        user_id=user_id,
+        chat_id=chat_id,
+        initial_message=message
+    )
+    chat_id = chat_session["id"]
 
-    session = get_session(user_id)
+    session = get_session(user_id, chat_id=chat_id)
     state = session.get("state", "idle")
+
+    append_history(
+        user_id=user_id,
+        chat_id=chat_id,
+        role="user",
+        content=message,
+        extra={"state_before": state},
+        status="completed"
+    )
 
     # ===============================
     # STEP 1: HANDLE SLOT SELECTION
@@ -45,12 +63,12 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
                 pass
 
         if not doctor_id or not slot:
-            return {
+            return _finalize_response(user_id, chat_id, message, {
                 "message": "Please select a doctor and time slot properly.",
                 "current_state": "awaiting_slot_selection",
                 "ui": {"component": "none"},
                 "actions": []
-            }
+            })
 
         result = book_appointment(
             patient_id=user_id,
@@ -61,21 +79,21 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
         )
 
         if result["status"] == "success":
-            clear_session(user_id)
+            clear_session(user_id, chat_id=chat_id)
 
-            return {
-                "message": f"Appointment confirmed at {result.get('scheduled_at')}",
+            return _finalize_response(user_id, chat_id, message, {
+                "message": f"Appointment confirmed at {result.get('time')}",
                 "current_state": "completed",
                 "ui": {"component": "none"},
                 "actions": []
-            }
+            })
 
-        return {
+        return _finalize_response(user_id, chat_id, message, {
             "message": f"Booking failed: {result['message']}",
             "current_state": "awaiting_slot_selection",
             "ui": {"component": "none"},
             "actions": []
-        }
+        })
 
     # ===============================
     # STEP 2: CALL LLM
@@ -83,6 +101,7 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
 
     ai_response = call_llm(
         user_id=user_id,
+        chat_id=chat_id,
         message=message,
         state=state
     )
@@ -107,20 +126,20 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
         )
 
         if not slots_data.get("doctors"):
-            return {
+            return _finalize_response(user_id, chat_id, message, {
                 "message": "No doctors available right now.",
                 "current_state": "idle",
                 "ui": {"component": "none"},
                 "actions": []
-            }
+            })
 
         update_session(user_id, {
             "state": "awaiting_slot_selection",
             "hospital_id": hospital_id,
             "department_id": department_id
-        })
+        }, chat_id=chat_id)
 
-        return {
+        return _finalize_response(user_id, chat_id, message, {
             "message": "Here are available doctors and slots:",
             "current_state": "awaiting_slot_selection",
             "ui": {
@@ -131,7 +150,7 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
                 }
             },
             "actions": []
-        }
+        })
 
     # ===============================
     # STEP 4: HANDLE ACTIONS
@@ -155,20 +174,20 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
             )
 
             if not slots_data.get("doctors"):
-                return {
+                return _finalize_response(user_id, chat_id, message, {
                     "message": "No available doctors or slots.",
                     "current_state": "idle",
                     "ui": {"component": "none"},
                     "actions": []
-                }
+                })
 
             update_session(user_id, {
                 "state": "awaiting_slot_selection",
                 "hospital_id": hospital_id,
                 "department_id": department_id
-            })
+            }, chat_id=chat_id)
 
-            return {
+            return _finalize_response(user_id, chat_id, message, {
                 "message": "Available doctors and slots:",
                 "current_state": "awaiting_slot_selection",
                 "ui": {
@@ -179,7 +198,7 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
                     }
                 },
                 "actions": []
-            }
+            })
 
     # ===============================
     # STEP 5: UPDATE STATE
@@ -187,9 +206,9 @@ def handle_message(user_id: int, message: Any) -> Dict[str, Any]:
 
     update_session(user_id, {
         "state": ai_response.get("current_state", state)
-    })
+    }, chat_id=chat_id)
 
-    return ai_response
+    return _finalize_response(user_id, chat_id, message, ai_response)
 
 
 # ===============================
@@ -217,3 +236,39 @@ def _infer_department(payload: Dict[str, Any]) -> int:
     }
 
     return mapping.get(speciality, 1)
+
+
+def _resolve_status(current_state: str) -> str:
+    return "completed" if current_state in {"completed", "idle"} else "active"
+
+
+def _finalize_response(
+    user_id: int,
+    chat_id: int,
+    message: Any,
+    response: Dict[str, Any]
+) -> Dict[str, Any]:
+    response["chat_id"] = chat_id
+    response["status"] = _resolve_status(response.get("current_state", "idle"))
+
+    complete_active_history(user_id, chat_id=chat_id, role="assistant")
+
+    append_history(
+        user_id=user_id,
+        chat_id=chat_id,
+        role="assistant",
+        content=response,
+        extra={
+            "current_state": response.get("current_state"),
+            "ui_component": response.get("ui", {}).get("component", "none")
+        },
+        status=response["status"]
+    )
+
+    update_session(user_id, {
+        "last_message": message,
+        "last_ai_message": response.get("message"),
+        "state": response.get("current_state", "idle")
+    }, chat_id=chat_id)
+
+    return response

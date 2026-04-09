@@ -125,7 +125,8 @@ STATE GUIDE:
 
 def generate_ai_response(
     user_id: int,
-    message: str,
+    chat_id: int,
+    message: Any,
     state: str
 ) -> Dict[str, Any]:
     """
@@ -137,7 +138,7 @@ def generate_ai_response(
         # GET HISTORY
         # ===============================
 
-        history = get_history(user_id, limit=10)
+        history = get_history(user_id, chat_id=chat_id, limit=10)
 
         messages: List[Dict[str, str]] = [
             {
@@ -148,15 +149,16 @@ def generate_ai_response(
 
         # add history
         for h in history:
+            content = _history_to_prompt_content(h)
             messages.append({
                 "role": h["role"],
-                "content": h["content"]
+                "content": content
             })
 
         # add current message
         messages.append({
             "role": "user",
-            "content": message
+            "content": _payload_to_prompt_content(message)
         })
 
         # ===============================
@@ -206,3 +208,27 @@ def generate_ai_response(
             "ui": {"component": "none"},
             "actions": []
         }
+
+
+def _history_to_prompt_content(entry: Dict[str, Any]) -> str:
+    content = entry.get("content")
+
+    if isinstance(content, dict):
+        if entry.get("role") == "assistant" and isinstance(content.get("message"), str):
+            return content["message"]
+        return json.dumps(content)
+
+    if isinstance(content, list):
+        return json.dumps(content)
+
+    return str(content)
+
+
+def _payload_to_prompt_content(payload: Any) -> str:
+    if isinstance(payload, dict):
+        return json.dumps(payload)
+
+    if isinstance(payload, list):
+        return json.dumps(payload)
+
+    return str(payload)

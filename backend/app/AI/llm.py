@@ -12,11 +12,6 @@ Responsibilities:
 from typing import Dict, Any
 
 from app.AI.services.openai_service import generate_ai_response
-from app.AI.session_store import (
-    append_history,
-    get_session,
-    update_session
-)
 
 
 # ===============================
@@ -25,36 +20,26 @@ from app.AI.session_store import (
 
 def call_llm(
     user_id: int,
-    message: str,
+    chat_id: int,
+    message: Any,
     state: str
 ) -> Dict[str, Any]:
     """
     Main function used by orchestrator.
 
     Flow:
-    1. Store user message
-    2. Call OpenAI
-    3. Store AI response
-    4. Normalize output
-    5. Return structured JSON
+    1. Call OpenAI
+    2. Normalize output
+    3. Return structured JSON
     """
 
     # ===============================
-    # STEP 1: STORE USER MESSAGE
-    # ===============================
-
-    append_history(
-        user_id=user_id,
-        role="user",
-        content=message
-    )
-
-    # ===============================
-    # STEP 2: CALL OPENAI
+    # STEP 1: CALL OPENAI
     # ===============================
 
     ai_response = generate_ai_response(
         user_id=user_id,
+        chat_id=chat_id,
         message=message,
         state=state
     )
@@ -64,24 +49,6 @@ def call_llm(
     # ===============================
 
     ai_response = _normalize_response(ai_response, state)
-
-    # ===============================
-    # STEP 4: STORE AI RESPONSE
-    # ===============================
-
-    append_history(
-        user_id=user_id,
-        role="assistant",
-        content=ai_response["message"]
-    )
-
-    # ===============================
-    # STEP 5: UPDATE SESSION CONTEXT
-    # ===============================
-
-    update_session(user_id, {
-        "last_ai_message": ai_response["message"]
-    })
 
     return ai_response
 

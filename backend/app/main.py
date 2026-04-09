@@ -12,6 +12,7 @@ import app.models.appointment
 import app.models.medical
 import app.models.prescription
 import app.models.billing
+import app.models.ai_chat
 # import app.models.ai
 
 Base.metadata.create_all(bind=engine)

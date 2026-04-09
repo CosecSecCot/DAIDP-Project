@@ -78,7 +78,10 @@ def seed_database():
         db.add_all(staff_members)
         db.commit()
 
-        # Seed Doctors
+        # ===============================
+        # SEED DOCTORS (MULTIPLE TYPES)
+        # ===============================
+
         doctors = [
             Doctor(
                 full_name="Dr. Emily Carter",
@@ -88,7 +91,8 @@ def seed_database():
                 specialisation="Cardiology",
                 qualification="MD",
                 years_of_experience=10,
-                consultation_fee=150.00
+                consultation_fee=150.00,
+                is_active=True
             ),
             Doctor(
                 full_name="Dr. John Lee",
@@ -98,54 +102,92 @@ def seed_database():
                 specialisation="General Medicine",
                 qualification="MBBS",
                 years_of_experience=8,
-                consultation_fee=100.00
+                consultation_fee=100.00,
+                is_active=True
+            ),
+            Doctor(
+                full_name="Dr. Sarah Kim",
+                email="sarah.kim@citygeneral.com",
+                hashed_password="hashedpassword",
+                phone="555-3003",
+                specialisation="Dermatology",
+                qualification="MD",
+                years_of_experience=6,
+                consultation_fee=120.00,
+                is_active=True
+            ),
+            Doctor(
+                full_name="Dr. Raj Mehta",
+                email="raj.mehta@citygeneral.com",
+                hashed_password="hashedpassword",
+                phone="555-3004",
+                specialisation="Orthopedics",
+                qualification="MS",
+                years_of_experience=12,
+                consultation_fee=180.00,
+                is_active=True
+            ),
+            Doctor(
+                full_name="Dr. Ananya Sharma",
+                email="ananya.sharma@downtownclinic.com",
+                hashed_password="hashedpassword",
+                phone="555-3005",
+                specialisation="Pediatrics",
+                qualification="MD",
+                years_of_experience=9,
+                consultation_fee=130.00,
+                is_active=True
             )
         ]
+
         db.add_all(doctors)
         db.commit()
 
-        # Seed Doctor Affiliations
+        # ===============================
+        # DOCTOR AFFILIATIONS
+        # ===============================
+
         affiliations = [
-            DoctorHospitalAffiliation(
-                doctor_id=1,
-                hospital_id=1,
-                department_id=1,
-                role=AffiliationRole.RESIDENT,
-                joined_date=date(2020, 1, 1)
-            ),
-            DoctorHospitalAffiliation(
-                doctor_id=2,
-                hospital_id=2,
-                department_id=3,
-                role=AffiliationRole.VISITING,
-                joined_date=date(2021, 6, 1)
-            )
+            DoctorHospitalAffiliation(doctor_id=1, hospital_id=1, department_id=1, role=AffiliationRole.RESIDENT),
+            DoctorHospitalAffiliation(doctor_id=2, hospital_id=2, department_id=2, role=AffiliationRole.VISITING),
+            DoctorHospitalAffiliation(doctor_id=3, hospital_id=1, department_id=3, role=AffiliationRole.RESIDENT),
+            DoctorHospitalAffiliation(doctor_id=4, hospital_id=1, department_id=4, role=AffiliationRole.RESIDENT),
+            DoctorHospitalAffiliation(doctor_id=5, hospital_id=2, department_id=5, role=AffiliationRole.VISITING),
         ]
+
         db.add_all(affiliations)
         db.commit()
 
-        # Seed Doctor Availability
-        availabilities = [
-            DoctorAvailability(
-                doctor_id=1,
-                hospital_id=1,
-                day_of_week=1,  # Monday
-                start_time="09:00",
-                end_time="17:00",
-                slot_duration_mins=30
-            ),
-            DoctorAvailability(
-                doctor_id=2,
-                hospital_id=2,
-                day_of_week=2,  # Tuesday
-                start_time="10:00",
-                end_time="16:00",
-                slot_duration_mins=45
-            )
+        # ===============================
+        # DOCTOR AVAILABILITY (ALL DAYS)
+        # ===============================
+
+        availabilities = []
+
+        doctor_configs = [
+            (1, 1, "09:00", "17:00", 30),  # Cardiology
+            (2, 2, "10:00", "16:00", 30),  # General
+            (3, 1, "11:00", "18:00", 30),  # Dermatology
+            (4, 1, "09:30", "15:30", 30),  # Orthopedics
+            (5, 2, "10:00", "14:00", 30),  # Pediatrics
         ]
+
+        for doctor_id, hospital_id, start, end, duration in doctor_configs:
+            for day in range(1, 8):  # 1–7 (Mon–Sun)
+                availabilities.append(
+                    DoctorAvailability(
+                        doctor_id=doctor_id,
+                        hospital_id=hospital_id,
+                        day_of_week=day,
+                        start_time=start,
+                        end_time=end,
+                        slot_duration_mins=duration,
+                        is_active=True
+                    )
+                )
+
         db.add_all(availabilities)
         db.commit()
-
         # Seed Patients
         patients = [
             Patient(

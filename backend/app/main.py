@@ -1,19 +1,18 @@
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from app.config.database import engine, Base
-from app.routers import auth, hospitals, doctors, staff, patients, appointments, medical, billing,ai
+from app.routers import (
+    auth,
+    hospitals,
+    doctors,
+    staff,
+    patients,
+    appointments,
+    medical,
+    billing,
+    ai_v2,
+)
 
-import app.models.admin
-import app.models.hospital
-import app.models.staff
-import app.models.doctor
-import app.models.patient
-import app.models.appointment
-import app.models.medical
-import app.models.prescription
-import app.models.billing
-import app.models.ai_chat
-# import app.models.ai
 
 Base.metadata.create_all(bind=engine)
 
@@ -27,11 +26,13 @@ app.include_router(patients.router)
 app.include_router(appointments.router)
 app.include_router(medical.router)
 app.include_router(billing.router)
-app.include_router(ai.router)
+app.include_router(ai_v2.router)
+
 
 @app.get("/")
 def root():
     return {"status": "Hospital API is running"}
+
 
 def custom_openapi():
     if app.openapi_schema:
@@ -42,16 +43,13 @@ def custom_openapi():
         routes=app.routes,
     )
     schema["components"]["securitySchemes"] = {
-        "BearerAuth": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT"
-        }
+        "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
     }
     for path in schema["paths"].values():
         for method in path.values():
             method["security"] = [{"BearerAuth": []}]
     app.openapi_schema = schema
     return app.openapi_schema
+
 
 app.openapi = custom_openapi

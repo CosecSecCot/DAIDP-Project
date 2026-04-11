@@ -127,13 +127,26 @@ def build_openai_tools() -> List[Dict[str, Any]]:
             "type": "function",
             "function": {
                 "name": "respond_to_user",
-                "description": "Produce the final user-facing response. Use only after all needed tool calls are complete.",
+                "description": "Produce the final user-facing response. Use only after all needed tool calls are complete, when you need to ask a few questions or acknowledged the user.",
                 "parameters": RespondToUserArgs.model_json_schema(),
             },
         }
     )
 
     return tools
+
+
+def build_plain_chat_tools() -> List[Dict[str, Any]]:
+    return [
+        {
+            "type": "function",
+            "function": {
+                "name": "respond_to_user",
+                "description": "Produce the final user-facing response. Use only after you have asked a few simple intake questions or acknowledged the user.",
+                "parameters": RespondToUserArgs.model_json_schema(),
+            },
+        }
+    ]
 
 
 def _format_examples(examples: List[RegistryExample]) -> str:
@@ -155,7 +168,7 @@ def _format_examples(examples: List[RegistryExample]) -> str:
     return "\n".join(blocks)
 
 
-def build_system_prompt() -> str:
+def build_system_prompt(*, warmup_mode: bool = False) -> str:
     registry = build_registry_bundle()
 
     ui_lines: List[str] = []
@@ -199,11 +212,12 @@ def build_system_prompt() -> str:
         "- When you are ready to answer the user, you MUST call respond_to_user.\n"
         "- Use picker when the user must choose among options.\n"
         "- Use alert when you need to confirm, inform, warn, or refuse.\n"
-        "- Take as much information as possible from the user before performing actions.\n"
-        "- For example: Ask some simple questions to gather symptoms and know more about their problems before you show appointment slots and book an appointment."
-        " Mention that they can refuse to do so if they don't want to but it will help you to take better decisions.\n"
-        "- For example: You can confirm your understanding of their problem with them and then proceed to actions.\n"
-        "- User should think that they are talking to at an actual front desk.\n\n"
+        "- In the beginning of a chat, keep the conversation plain and natural.\n"
+        "- Ask a short follow-up question or two before showing appointment slots.\n"
+        "- Only ask simple, human front-desk style questions at first, such as the main problem, duration, or urgency.\n"
+        "- Tell the user they can skip the questions if they prefer, but the questions help you guide them better.\n"
+        "- Do not show a picker in the warm-up phase unless the user explicitly asks to see options right away.\n"
+        "- User should think that they are talking to an actual front desk assistant.\n\n"
         "Registered UI components:\n"
         f"{chr(10).join(ui_lines)}\n\n"
         "Registered actions:\n"

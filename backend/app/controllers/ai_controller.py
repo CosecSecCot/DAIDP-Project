@@ -15,6 +15,7 @@ from app.controllers.agent_actions.common import (
 from app.controllers.agent_actions.registry import (
     ACTION_REGISTRY,
     build_openai_tools,
+    build_plain_chat_tools,
     build_system_prompt,
 )
 from app.models.ai import (
@@ -24,6 +25,7 @@ from app.models.ai import (
     ChatResponse,
     AlertData,
     AlertUI,
+    NoneUI,
     PatientContext,
     RespondToUserArgs,
 )
@@ -33,6 +35,7 @@ from openai import OpenAI
 
 MAX_TOOL_ROUNDS = 6
 HISTORY_LIMIT = 10
+WARMUP_USER_TURNS = 4
 
 
 client = OpenAI()
@@ -76,15 +79,23 @@ def _build_messages(
     patient_context: PatientContext,
     history: List[Dict[str, Any]],
     incoming_message: Any,
+    *,
+    warmup_mode: bool,
 ) -> List[Dict[str, str]]:
     messages: List[Dict[str, str]] = [
         {
             "role": "system",
             "content": (
-                build_system_prompt()
+                build_system_prompt(warmup_mode=warmup_mode)
                 + "\n\nConversation context:\n"
                 + json.dumps(patient_context.model_dump(mode="json"), default=str)
                 + "\n\nThe user is not affiliated with any hospital. Do not assume otherwise."
+                + (
+                    "\n\nWarm-up mode: keep the conversation natural, ask one short clarifying question, "
+                    "and do not use slot-search or booking tools yet."
+                    if warmup_mode
+                    else ""
+                )
             ),
         }
     ]
@@ -96,6 +107,14 @@ def _build_messages(
 
     messages.append({"role": "user", "content": _stringify_message(incoming_message)})
     return messages
+
+
+def _count_user_turns(history: List[Dict[str, Any]]) -> int:
+    return sum(1 for item in history if item.get("role") == "user")
+
+
+def _is_warmup_phase(history: List[Dict[str, Any]]) -> bool:
+    return _count_user_turns(history) < WARMUP_USER_TURNS
 
 
 def _execute_action(tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -164,8 +183,14 @@ def handle_chat_message(
     history = get_persisted_history(
         user_id=user_id, chat_id=chat_id, limit=HISTORY_LIMIT
     )
-    messages = _build_messages(patient_context, history, message)
-    tools = build_openai_tools()
+    warmup_mode = _is_warmup_phase(history)
+    messages = _build_messages(
+        patient_context,
+        history,
+        message,
+        warmup_mode=warmup_mode,
+    )
+    tools = build_plain_chat_tools() if warmup_mode else build_openai_tools()
     executed_actions: List[ActionRecord] = []
 
     final_response: Optional[AgentResponse] = None
@@ -237,7 +262,7 @@ def handle_chat_message(
                 data=AlertData(
                     title="Request could not be completed",
                     message="Please try again in a moment.",
-                    level="error",
+                    level=AlertData.level.ERROR,
                 ),
             ),
             actions=executed_actions,

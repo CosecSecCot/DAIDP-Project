@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AIUIComponent(str, Enum):
+    NONE = "none"
     ALERT = "alert"
     PICKER = "picker"
 
@@ -54,6 +55,13 @@ class AlertUI(BaseModel):
     data: AlertData
 
 
+class NoneUI(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    component: Literal["none"] = "none"
+    data: Optional[Dict[str, Any]] = None
+
+
 class PickerUI(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -61,7 +69,7 @@ class PickerUI(BaseModel):
     data: PickerData
 
 
-UIBlock = Annotated[Union[AlertUI, PickerUI], Field(discriminator="component")]
+UIBlock = Annotated[Union[NoneUI, AlertUI, PickerUI], Field(discriminator="component")]
 
 
 class ActionStatus(str, Enum):
@@ -289,4 +297,3 @@ class GetUserInfoOutput(BaseModel):
 
     summary: str
     patient: PatientContext
-

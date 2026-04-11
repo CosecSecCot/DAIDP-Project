@@ -5,9 +5,11 @@ import { Message } from "@/types/chat";
 
 export default function ChatMessage({
   message,
+  active,
   onAction,
 }: {
   message: Message;
+  active: boolean;
   onAction: (metadata?: any) => void;
 }) {
   return (
@@ -22,7 +24,7 @@ export default function ChatMessage({
         className={cn(
           "text-foreground text-base",
           message.role === "user"
-            ? "bg-surface-tertiary max-w-[80%] px-[1em] py-[.75em] rounded-3xl"
+            ? "bg-surface-tertiary max-w-[90%] px-[1em] py-[.75em] rounded-3xl"
             : "",
         )}
       >
@@ -30,7 +32,7 @@ export default function ChatMessage({
       </Text>
 
       {/* 🔥 Dynamic UI */}
-      <UIMessageRenderer ui={message.ui} onAction={onAction} />
+      <UIMessageRenderer ui={message.ui} onAction={onAction} active={active} />
     </View>
   );
 }

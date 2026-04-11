@@ -1,14 +1,16 @@
 import { UIData } from "@/types/chat";
-import MCQBottomSheetRenderer from "./MCQRenderer";
 import { Text } from "react-native";
 import { Surface } from "heroui-native";
-import MCQCompleted from "./MCQCompleted";
+import PickerRenderer from "./PickerRenderer";
+import AlertRenderer from "./AlertRenderer";
 
 export default function UIMessageRenderer({
   ui,
+  active,
   onAction,
 }: {
   ui?: UIData;
+  active: boolean;
   onAction: (metadata?: any) => void;
 }) {
   if (!ui) return null;
@@ -17,17 +19,12 @@ export default function UIMessageRenderer({
     case "none":
       return null;
 
-    case "mcq":
-      if (ui.state === "completed") {
-        return ui.result ? <MCQCompleted result={ui.result} /> : null;
-      }
+    case "alert":
+      return <AlertRenderer data={ui.data} />;
 
-      return (
-        <MCQBottomSheetRenderer
-          questions={ui.data.questions}
-          onSubmit={onAction}
-        />
-      );
+    case "picker":
+      if (active) return <PickerRenderer data={ui.data} onSubmit={onAction} />;
+      return null;
 
     default:
       return (

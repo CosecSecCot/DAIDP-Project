@@ -19,16 +19,23 @@ export default function ChatList({
     <ScrollShadow
       LinearGradientComponent={LinearGradient}
       size={128}
-      className="flex-1"
+      className="flex-1 mb-[10vh]"
     >
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
         <View className="h-[10vh]" />
-        {messages.map((msg, index) => (
-          <ChatMessage key={index} message={msg} onAction={onAction} />
-        ))}
+        {messages.map((msg, index) => {
+          return (
+            <ChatMessage
+              key={index}
+              message={msg}
+              onAction={onAction}
+              active={index === messages.length - 1}
+            />
+          );
+        })}
       </KeyboardAwareScrollView>
     </ScrollShadow>
   );

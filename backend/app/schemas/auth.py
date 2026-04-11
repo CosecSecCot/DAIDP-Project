@@ -30,7 +30,7 @@ class RegisterPatient(BaseModel):
     gender                 : Optional[Gender] = None
     address                : Optional[str]   = None
     blood_group            : Optional[str]   = None
-    registered_hospital_id : int
+    registered_hospital_id : Optional[int] = 0
 
 class RegisterDoctor(BaseModel):
     full_name           : str

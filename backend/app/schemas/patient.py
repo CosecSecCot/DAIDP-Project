@@ -16,7 +16,7 @@ class PatientCreate(BaseModel):
     email                  : Optional[EmailStr] = None
     address                : Optional[str]   = None
     blood_group            : Optional[str]   = None
-    registered_hospital_id : int
+    registered_hospital_id : Optional[int] = None
 
 class PatientUpdate(BaseModel):
     full_name     : Optional[str]    = None
@@ -36,7 +36,7 @@ class PatientResponse(BaseModel):
     email                  : Optional[str]
     address                : Optional[str]
     blood_group            : Optional[str]
-    registered_hospital_id : int
+    registered_hospital_id : Optional[int] = None
 
     class Config:
         from_attributes = True

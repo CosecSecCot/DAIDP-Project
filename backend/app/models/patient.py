@@ -19,7 +19,7 @@ class Patient(Base):
     phone                  = Column(String(30))
     address                = Column(Text)
     blood_group            = Column(String(10))
-    registered_hospital_id = Column(Integer, nullable=False)
+    registered_hospital_id = Column(Integer, nullable=True)
     is_active              = Column(Boolean, default=True)
     created_at             = Column(DateTime, default=datetime.utcnow)
 

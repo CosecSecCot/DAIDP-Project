@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -23,6 +23,7 @@ from app.controllers.medical_controller import (
     get_lab_test_by_id, update_lab_test, delete_lab_test,
     upload_document, get_documents_by_patient,
     get_document_by_id, delete_document,
+    upload_document_file,
     create_prescription, get_prescription_by_record,
     get_prescription_by_id, update_prescription,
     add_prescription_item, get_prescription_items,
@@ -170,6 +171,32 @@ def create_document(
     current_user = Depends(any_authenticated)
 ):
     return upload_document(data, db)
+
+
+@router.post("/documents/upload/", response_model=DocumentResponse, status_code=201)
+async def upload_document_endpoint(
+    patient_id: int = Form(...),
+    file: UploadFile = File(...),
+    uploaded_by: str = Form(...),
+    record_id: int = Form(None),
+    document_type: str = Form(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(any_authenticated)
+):
+    """
+    Upload a PDF or document file for a patient.
+    
+    Supported file types: PDF, JPG, PNG, GIF, DOC, DOCX
+    Max file size: 50 MB
+    """
+    return await upload_document_file(
+        patient_id=patient_id,
+        file=file,
+        uploaded_by=uploaded_by,
+        record_id=record_id,
+        document_type=document_type,
+        db=db
+    )
 
 
 @router.get("/documents/patient/{patient_id}", response_model=List[DocumentResponse])

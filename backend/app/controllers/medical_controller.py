@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
 from datetime import datetime
 
 from app.models.medical import MedicalRecord, Diagnosis, LabTest, Document
@@ -14,6 +14,7 @@ from app.schemas.prescription import (
     PrescriptionCreate, PrescriptionUpdate,
     PrescriptionItemCreate, PrescriptionItemUpdate
 )
+from app.config.file_upload import save_upload_file, delete_upload_file
 
 
 # ── Medical Records ───────────────────────────────────────────────────────────
@@ -337,3 +338,43 @@ def delete_prescription_item(prescription_id: int, item_id: int, db: Session):
     db.delete(item)
     db.commit()
     return {"message": "Prescription item deleted"}
+
+
+async def upload_document_file(
+    patient_id: int,
+    file: UploadFile,
+    uploaded_by: str,
+    record_id: int = None,
+    document_type: str = None,
+    db: Session = None
+):
+    """
+    Upload a document file and save it to disk.
+    
+    Args:
+        patient_id: ID of the patient
+        file: The uploaded file
+        uploaded_by: Who uploaded (doctor, staff, patient)
+        record_id: Optional medical record ID
+        document_type: Type of document (report, scan, discharge_summary, other)
+        db: Database session
+    
+    Returns:
+        Created Document object
+    """
+    # Save file to disk
+    file_path = await save_upload_file(file, file_type="documents")
+    
+    # Create document record in DB
+    document = Document(
+        patient_id    = patient_id,
+        record_id     = record_id,
+        uploaded_by   = uploaded_by,
+        file_name     = file.filename,
+        file_url      = file_path,
+        document_type = document_type
+    )
+    db.add(document)
+    db.commit()
+    db.refresh(document)
+    return document

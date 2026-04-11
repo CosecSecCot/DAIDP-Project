@@ -129,6 +129,13 @@ class DocumentCreate(BaseModel):
     document_type : Optional[DocumentType] = None
 
 
+class DocumentUploadCreate(BaseModel):
+    patient_id    : int
+    record_id     : Optional[int]         = None
+    uploaded_by   : UploadedBy
+    document_type : Optional[DocumentType] = None
+
+
 class DocumentResponse(BaseModel):
     id            : int
     patient_id    : int

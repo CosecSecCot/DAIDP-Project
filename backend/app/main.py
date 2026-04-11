@@ -11,6 +11,7 @@ from app.routers import (
     medical,
     billing,
     ai_v2,
+    nearby,
 )
 
 
@@ -27,7 +28,7 @@ app.include_router(appointments.router)
 app.include_router(medical.router)
 app.include_router(billing.router)
 app.include_router(ai_v2.router)
-
+app.include_router(nearby.router)
 
 @app.get("/")
 def root():

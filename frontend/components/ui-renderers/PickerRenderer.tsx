@@ -65,7 +65,7 @@ export default function PickerRenderer({
       </Card.Header>
 
       {/* Body */}
-      <Card.Body className="h-[40vh]">
+      <Card.Body className="h-[25vh]">
         <ScrollShadow
           LinearGradientComponent={LinearGradient}
           color={scrollGradientColor}

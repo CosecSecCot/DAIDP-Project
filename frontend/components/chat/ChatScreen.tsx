@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
-import { Button, useThemeColor } from "heroui-native";
-import { Keyboard, TextInput, View } from "react-native";
-import { KeyboardStickyView } from "react-native-keyboard-controller";
-import {
-  Add01Icon,
-  ArrowUp02Icon,
-  MenuTwoLineIcon,
-} from "@hugeicons/core-free-icons";
+import { Keyboard, View } from "react-native";
 import { useRouter } from "expo-router";
-import { StyledIcon } from "@/components/icons";
 import ChatList from "@/components/chat/ChatList";
 import { Message, UIData } from "@/types/chat";
+import StickyChatInput from "./StickyChatInput";
 
 const CURRENT_USER_ID = 3;
 const CHAT_API_URL =
@@ -127,32 +120,8 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
 
   return (
     <>
-      <View className="flex-1 py-safe-offset-4 px-4 bg-background">
+      <View className="flex-1 pb-safe-offset-4 px-4 bg-background">
         <View className="flex-1 gap-8">
-          <View className="absolute top-0 w-full z-40 flex-row justify-between items-center">
-            <Button
-              size="md"
-              variant="outline"
-              isIconOnly
-              className="bg-surface"
-            >
-              <StyledIcon
-                icon={MenuTwoLineIcon}
-                size={28}
-                themeColor="foreground"
-              />
-            </Button>
-            <Button
-              size="md"
-              variant="outline"
-              isIconOnly
-              className="bg-surface"
-              onPress={() => router.replace("/")}
-            >
-              <StyledIcon icon={Add01Icon} size={28} themeColor="foreground" />
-            </Button>
-          </View>
-
           <ChatList messages={messages} onAction={sendAction} />
         </View>
       </View>
@@ -163,56 +132,6 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         disabled={!isHistoryLoaded || isSending}
       />
     </>
-  );
-}
-
-function StickyChatInput({
-  input,
-  setInput,
-  onSend,
-  disabled = false,
-}: {
-  input: string;
-  setInput: (v: string) => void;
-  onSend: () => void;
-  disabled?: boolean;
-}) {
-  const placeholderColor = useThemeColor("field-placeholder");
-
-  return (
-    <KeyboardStickyView
-      style={{ zIndex: 100 }}
-      className="absolute bottom-0 w-full ios:p-2 ios:pb-safe-offset-0 shadow-2xl"
-    >
-      <View className="bg-surface gap-4 p-4 pt-3 android:pb-safe-offset-0 rounded-t-3xl ios:rounded-b-3xl ios:border ios:border-border">
-        <TextInput
-          multiline
-          placeholder="Ask me anything..."
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={onSend}
-          editable={!disabled}
-          placeholderTextColor={placeholderColor}
-          className="text-foreground text-base"
-        />
-        <View className="items-end">
-          <Button
-            size="md"
-            variant="outline"
-            isIconOnly
-            onPress={onSend}
-            isDisabled={disabled}
-            className="bg-surface-secondary shadow-2xl"
-          >
-            <StyledIcon
-              icon={ArrowUp02Icon}
-              size={24}
-              themeColor="foreground"
-            />
-          </Button>
-        </View>
-      </View>
-    </KeyboardStickyView>
   );
 }
 

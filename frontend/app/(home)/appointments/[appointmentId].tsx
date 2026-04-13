@@ -10,7 +10,7 @@ export default function AppointmentRoute() {
   }
 
   return (
-    <View className="flex-1 justify-center items-center">
+    <View className="flex-1 justify-center items-center pb-safe-offset-4 pt-4 px-4 bg-background">
       <Text className="text-foreground">Appointment {appointmentId}</Text>
     </View>
   );

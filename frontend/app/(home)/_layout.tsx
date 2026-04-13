@@ -1,6 +1,10 @@
 import { StyledIcon } from "@/components/icons";
 import MenuScreen from "@/components/menu";
-import { Add01Icon, MenuTwoLineIcon } from "@hugeicons/core-free-icons";
+import {
+  Add01Icon,
+  ArrowLeft01Icon,
+  MenuTwoLineIcon,
+} from "@hugeicons/core-free-icons";
 import { DrawerHeaderProps } from "@react-navigation/drawer";
 import { useRouter } from "expo-router";
 import { Drawer } from "expo-router/drawer";
@@ -37,6 +41,12 @@ export default function Layout() {
           drawerLabel: "Appointments",
           title: "Appointments",
           header: (props) => <DefaultHeader {...props} />,
+        }}
+      />
+      <Drawer.Screen
+        name="appointments/[appointmentId]"
+        options={{
+          header: (props) => <AppointmentHeader {...props} />,
         }}
       />
     </Drawer>
@@ -86,6 +96,25 @@ function ChatHeader(props: DrawerHeaderProps) {
       >
         <StyledIcon icon={Add01Icon} size={28} themeColor="foreground" />
       </Button>
+    </View>
+  );
+}
+
+function AppointmentHeader(props: DrawerHeaderProps) {
+  return (
+    <View className="bg-background pt-safe-offset-4 px-4 flex-row justify-between items-center">
+      <Button
+        size="md"
+        variant="outline"
+        isIconOnly
+        className="bg-surface"
+        onPress={() => props.navigation.jumpTo("appointments/index")}
+      >
+        <StyledIcon icon={ArrowLeft01Icon} size={28} themeColor="foreground" />
+      </Button>
+      <Text className="font-bold text-lg text-foreground">
+        {props.options.title}
+      </Text>
     </View>
   );
 }

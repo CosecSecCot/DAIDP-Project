@@ -1,8 +1,9 @@
 import { Appointment } from "@/types/appointment";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Button, Card, Spinner } from "heroui-native";
+import { Button, Card, ScrollShadow, Spinner } from "heroui-native";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { ScrollView, Text, View } from "react-native";
 
 const CURRENT_USER_ID = 3;
 const APPOINTMENTS_API_URL = `https://tighter-autodidactic-cristin.ngrok-free.dev/appointments/patient/${CURRENT_USER_ID}`;
@@ -46,15 +47,23 @@ export default function AppointmentsRoute() {
   }, []);
 
   return (
-    <View className="flex-1 pb-safe-offset-4 pt-4 px-4 bg-background gap-4">
+    <View className="flex-1 pb-safe-offset-4 pt-4 px-4 bg-background">
       {!areAppointmentsLoaded ? (
         <View className="flex-1 justify-center items-center">
           <Spinner size="lg" />
         </View>
       ) : appointments.length > 0 ? (
-        appointments.map((appointment) => (
-          <AppointmentCard key={appointment.id} appointment={appointment} />
-        ))
+        <ScrollShadow
+          LinearGradientComponent={LinearGradient}
+          size={32}
+          className="flex-1 mt-4"
+        >
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {appointments.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} />
+            ))}
+          </ScrollView>
+        </ScrollShadow>
       ) : (
         <View className="flex-1 justify-center items-center">
           <Text className="text-foreground">No Appointments made yet!</Text>
@@ -70,7 +79,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const date = new Date(appointment.scheduled_at).toLocaleString();
 
   return (
-    <Card>
+    <Card className="mb-4">
       <View className="gap-4">
         <Card.Body className="mb-4">
           <View className="gap-1 mb-2">

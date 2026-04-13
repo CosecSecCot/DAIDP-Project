@@ -1,17 +1,24 @@
-import { useState } from "react";
-import { Button, Spinner, Switch, useThemeColor } from "heroui-native";
+import {
+  BottomSheet,
+  Button,
+  ControlField,
+  ListGroup,
+  Spinner,
+  Switch,
+  useThemeColor,
+} from "heroui-native";
 import { Text, TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
-import { ArrowUp02Icon } from "@hugeicons/core-free-icons";
+import { ArrowUp02Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
 import { StyledIcon } from "@/components/icons";
+import { useAudioSettings } from "@/context/audio-settings";
+import { useState } from "react";
 
 type StickyChatInputProps = {
   input: string;
   setInput: (v: string) => void;
   onSend: () => void;
   disabled?: boolean;
-  audioEnabled?: boolean;
-  onAudioEnabledChange?: (enabled: boolean) => void;
 };
 
 export default function StickyChatInput({
@@ -19,13 +26,8 @@ export default function StickyChatInput({
   setInput,
   onSend,
   disabled = false,
-  audioEnabled,
-  onAudioEnabledChange,
 }: StickyChatInputProps) {
   const placeholderColor = useThemeColor("field-placeholder");
-  const [localAudioEnabled, setLocalAudioEnabled] = useState(false);
-  const isAudioEnabled = audioEnabled ?? localAudioEnabled;
-  const handleAudioToggle = onAudioEnabledChange ?? setLocalAudioEnabled;
 
   return (
     <KeyboardStickyView
@@ -44,21 +46,7 @@ export default function StickyChatInput({
           className="text-foreground text-base"
         />
         <View className="flex-row items-center justify-between gap-4">
-          <View className="flex-row items-center gap-3">
-            <Switch
-              isSelected={isAudioEnabled}
-              onSelectedChange={handleAudioToggle}
-              isDisabled={disabled}
-            />
-            <View className="gap-0.5">
-              <Text className="text-foreground text-sm font-medium">
-                Audio replies
-              </Text>
-              <Text className="text-foreground/60 text-xs">
-                Play assistant responses automatically
-              </Text>
-            </View>
-          </View>
+          <SettingsSheet />
           <Button
             size="md"
             variant="outline"
@@ -80,5 +68,53 @@ export default function StickyChatInput({
         </View>
       </View>
     </KeyboardStickyView>
+  );
+}
+
+function SettingsSheet() {
+  const { audioEnabled, isLoaded, setAudioEnabled } = useAudioSettings();
+
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <BottomSheet isOpen={isOpen} onOpenChange={setIsOpen}>
+      <BottomSheet.Trigger asChild>
+        <Button
+          size="md"
+          variant="outline"
+          isIconOnly
+          isDisabled={isOpen}
+          className="bg-surface-secondary shadow-2xl"
+        >
+          <StyledIcon
+            icon={MoreHorizontalIcon}
+            size={24}
+            themeColor="foreground"
+          />
+        </Button>
+      </BottomSheet.Trigger>
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content>
+          <ListGroup>
+            <ControlField
+              isSelected={audioEnabled}
+              onSelectedChange={setAudioEnabled}
+              disabled={!isLoaded}
+              isDisabled={!isLoaded}
+              className="flex-row items-center gap-3 py-4 px-4"
+            >
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Audio replies</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>
+                  Play assistant responses automatically
+                </ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ControlField.Indicator />
+            </ControlField>
+          </ListGroup>
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
   );
 }

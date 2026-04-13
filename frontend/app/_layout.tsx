@@ -5,6 +5,7 @@ import "../global.css";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { HeroUINativeProvider } from "heroui-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { AudioSettingsProvider } from "@/context/audio-settings";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -18,7 +19,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardProvider>
           <HeroUINativeProvider>
-            <Stack screenOptions={{ headerShown: false }} />
+            <AudioSettingsProvider>
+              <Stack screenOptions={{ headerShown: false }} />
+            </AudioSettingsProvider>
           </HeroUINativeProvider>
         </KeyboardProvider>
       </GestureHandlerRootView>

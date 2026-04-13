@@ -43,7 +43,7 @@ export default function NewChatScreen() {
 
       const data = await res.json();
       const nextChatId = data.chat_id as number;
-      router.replace(`/chats/${nextChatId}`);
+      router.replace(`/chats/${nextChatId}?isNewChat=true`);
     } catch (err) {
       console.error(err);
     } finally {

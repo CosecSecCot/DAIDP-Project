@@ -3,6 +3,7 @@ import { Keyboard, View } from "react-native";
 import { Audio } from "expo-av";
 import ChatList from "@/components/chat/ChatList";
 import { Message, UIData } from "@/types/chat";
+import { useAudioSettings } from "@/context/audio-settings";
 import StickyChatInput from "./StickyChatInput";
 
 const CURRENT_USER_ID = 3;
@@ -12,13 +13,19 @@ const CHAT_AUDIO_API_URL =
   "https://tighter-autodidactic-cristin.ngrok-free.dev/ai-v2/audio";
 const CHAT_HISTORY_API_URL = `https://tighter-autodidactic-cristin.ngrok-free.dev/ai-v2/history/${CURRENT_USER_ID}`;
 
-export default function ChatScreen({ chatId }: { chatId: number }) {
+export default function ChatScreen({
+  chatId,
+  isNewChat,
+}: {
+  chatId: number;
+  isNewChat: boolean;
+}) {
   const audioSoundRef = useRef<Audio.Sound | null>(null);
+  const { audioEnabled, isLoaded: isAudioSettingsLoaded } = useAudioSettings();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -42,6 +49,10 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         if (!isActive) return;
 
         setMessages(history.map(normalizeHistoryMessage));
+
+        if (isNewChat && audioEnabled) {
+          await playAssistantAudio(audioSoundRef, chatId);
+        }
       } catch (err) {
         console.error(err);
       } finally {
@@ -59,12 +70,12 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
   }, [chatId]);
 
   useEffect(() => {
-    if (isAudioEnabled) {
+    if (audioEnabled) {
       return;
     }
 
     void unloadAudio(audioSoundRef);
-  }, [isAudioEnabled]);
+  }, [audioEnabled]);
 
   useEffect(() => {
     return () => {
@@ -102,7 +113,7 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         { role: "assistant", text: data.message, ui: data.ui },
       ]);
 
-      if (isAudioEnabled) {
+      if (audioEnabled) {
         await playAssistantAudio(audioSoundRef, chatId);
       }
     } catch (err) {
@@ -135,7 +146,7 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         { role: "assistant", text: data.message, ui: data.ui },
       ]);
 
-      if (isAudioEnabled) {
+      if (audioEnabled) {
         await playAssistantAudio(audioSoundRef, chatId);
       }
     } catch (err) {
@@ -154,9 +165,7 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         input={input}
         setInput={setInput}
         onSend={sendMessage}
-        disabled={!isHistoryLoaded || isSending}
-        audioEnabled={isAudioEnabled}
-        onAudioEnabledChange={setIsAudioEnabled}
+        disabled={!isHistoryLoaded || isSending || !isAudioSettingsLoaded}
       />
     </>
   );

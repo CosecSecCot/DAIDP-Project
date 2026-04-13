@@ -4,19 +4,25 @@ import {
   ControlField,
   ListGroup,
   Spinner,
-  Switch,
   useThemeColor,
 } from "heroui-native";
-import { Text, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
-import { ArrowUp02Icon, MoreHorizontalIcon } from "@hugeicons/core-free-icons";
+import {
+  ArrowUp02Icon,
+  AttachmentIcon,
+  Mic02Icon,
+  MicOff02Icon,
+  MoreHorizontalIcon,
+} from "@hugeicons/core-free-icons";
 import { StyledIcon } from "@/components/icons";
 import { useAudioSettings } from "@/context/audio-settings";
-import { useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useState } from "react";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
 
 type StickyChatInputProps = {
   input: string;
-  setInput: (v: string) => void;
+  setInput: Dispatch<SetStateAction<string>>;
   onSend: () => void;
   disabled?: boolean;
 };
@@ -29,6 +35,26 @@ export default function StickyChatInput({
 }: StickyChatInputProps) {
   const placeholderColor = useThemeColor("field-placeholder");
 
+  // Memoize to prevent hook from resetting
+  const handleFinalResult = useCallback(
+    (text: string) => {
+      setInput((prev) => {
+        const spacing = prev.length > 0 && !prev.endsWith(" ") ? " " : "";
+        return `${prev}${spacing}${text}`;
+      });
+    },
+    [setInput],
+  );
+
+  const speech = useSpeechToText({
+    onFinalResult: handleFinalResult,
+  });
+
+  // Combine fixed input with live preview
+  const displayValue = speech.isRecording
+    ? `${input}${input && speech.transcript ? " " : ""}${speech.transcript}`
+    : input;
+
   return (
     <KeyboardStickyView
       style={{ zIndex: 100 }}
@@ -38,15 +64,34 @@ export default function StickyChatInput({
         <TextInput
           multiline
           placeholder="Ask me anything..."
-          value={input}
-          onChangeText={setInput}
+          value={displayValue}
+          onChangeText={(text) => {
+            // Prevent manual typing from clobbering the state while recording
+            if (!speech.isRecording) setInput(text);
+          }}
           onSubmitEditing={onSend}
-          editable={!disabled}
+          editable={!disabled && !speech.isRecording}
           placeholderTextColor={placeholderColor}
           className="text-foreground text-base"
         />
         <View className="flex-row items-center justify-between gap-4">
-          <SettingsSheet />
+          <View className="flex-row items-center gap-2">
+            <SettingsSheet />
+            <Button
+              size="md"
+              variant="outline"
+              isIconOnly
+              onPress={speech.isRecording ? speech.stop : speech.start}
+              isDisabled={disabled}
+              className="bg-surface-secondary shadow-2xl"
+            >
+              <StyledIcon
+                icon={speech.isRecording ? MicOff02Icon : Mic02Icon}
+                size={24}
+                themeColor={speech.isRecording ? "danger" : "foreground"}
+              />
+            </Button>
+          </View>
           <Button
             size="md"
             variant="outline"
@@ -96,7 +141,26 @@ function SettingsSheet() {
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
         <BottomSheet.Content>
-          <ListGroup>
+          <ListGroup className="mb-4">
+            <ListGroup.Item
+              onPress={() => {
+                console.log("Attached Files");
+              }}
+            >
+              <ListGroup.ItemPrefix>
+                <StyledIcon
+                  icon={AttachmentIcon}
+                  size={24}
+                  themeColor="foreground"
+                />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>Attach Files</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>
+                  Upload any files or documents
+                </ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+            </ListGroup.Item>
             <ControlField
               isSelected={audioEnabled}
               onSelectedChange={setAudioEnabled}
@@ -113,6 +177,13 @@ function SettingsSheet() {
               <ControlField.Indicator />
             </ControlField>
           </ListGroup>
+          <Button
+            variant="ghost"
+            onPress={() => setIsOpen(false)}
+            feedbackVariant="scale"
+          >
+            <Button.Label className="font-semibold">Dismiss</Button.Label>
+          </Button>
         </BottomSheet.Content>
       </BottomSheet.Portal>
     </BottomSheet>

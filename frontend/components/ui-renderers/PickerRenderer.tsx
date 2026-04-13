@@ -10,6 +10,7 @@ import {
   Card,
   ScrollShadow,
   useThemeColor,
+  Spinner,
 } from "heroui-native";
 import { withUniwind } from "uniwind";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -23,12 +24,13 @@ export default function PickerRenderer({
   onSubmit,
 }: {
   data: PickerData;
-  onSubmit: (result: Record<string, string | string[]>) => void;
+  onSubmit: (metadata?: any) => Promise<void>;
 }) {
   const scrollGradientColor = useThemeColor("surface-secondary");
 
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedMultiple, setSelectedMultiple] = useState<string[]>([]);
+  const [isSending, setIsSending] = useState(false);
 
   const isMulti = data.allow_multiple;
 
@@ -42,17 +44,26 @@ export default function PickerRenderer({
     );
   };
 
-  const handleSubmit = () => {
-    if (isMulti) {
-      onSubmit({ values: selectedMultiple });
-    } else {
-      if (selected) {
-        onSubmit({ value: selected });
+  const handleSubmit = async () => {
+    setIsSending(true);
+
+    try {
+      if (isMulti) {
+        await onSubmit({ values: selectedMultiple });
+      } else {
+        if (selected) {
+          await onSubmit({ value: selected });
+        }
       }
+    } catch (err) {
+      console.error("Submit failed:", err);
+    } finally {
+      setIsSending(false);
     }
   };
 
-  const isDisabled = isMulti ? selectedMultiple.length === 0 : !selected;
+  const isDisabled =
+    isSending || (isMulti ? selectedMultiple.length === 0 : !selected);
 
   return (
     <Card className="gap-4" variant="secondary">
@@ -76,6 +87,7 @@ export default function PickerRenderer({
             {!isMulti ? (
               <RadioGroup
                 value={selected ?? undefined}
+                isDisabled={isSending}
                 onValueChange={handleSingleSelect}
                 className="gap-2"
                 variant="primary"
@@ -109,11 +121,15 @@ export default function PickerRenderer({
       <Card.Footer className="gap-3">
         <Button isDisabled={isDisabled} onPress={handleSubmit}>
           <Button.Label>Submit</Button.Label>
-          <StyledIonicons
-            name="checkmark"
-            size={16}
-            className="text-accent-foreground"
-          />
+          {isSending ? (
+            <Spinner size="sm" color="white" />
+          ) : (
+            <StyledIonicons
+              name="checkmark"
+              size={16}
+              className="text-accent-foreground"
+            />
+          )}
         </Button>
       </Card.Footer>
     </Card>

@@ -12,7 +12,7 @@ export default function ChatMessage({
 }: {
   message: Message;
   active: boolean;
-  onAction: (metadata?: any) => void;
+  onAction: (metadata?: any) => Promise<void>;
 }) {
   return (
     <View
@@ -21,11 +21,11 @@ export default function ChatMessage({
         message.role === "user" ? "items-end" : "items-start",
       )}
     >
-      {message.role === "assistant" && (
+      {/* {message.role === "assistant" && (
         <Button size="sm" variant="outline" isIconOnly>
           <StyledIcon icon={VolumeHighIcon} size={16} themeColor="muted" />
         </Button>
-      )}
+      )} */}
       <Text
         selectable={message.role !== "user"}
         className={cn(

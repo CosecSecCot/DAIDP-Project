@@ -13,7 +13,7 @@ export default function ChatList({
   onAction,
 }: {
   messages: Message[];
-  onAction: (metadata?: any) => void;
+  onAction: (metadata?: any) => Promise<void>;
 }) {
   return (
     <ScrollShadow

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Keyboard, View } from "react-native";
-import { useRouter } from "expo-router";
+import { Audio } from "expo-av";
 import ChatList from "@/components/chat/ChatList";
 import { Message, UIData } from "@/types/chat";
 import StickyChatInput from "./StickyChatInput";
@@ -8,14 +8,17 @@ import StickyChatInput from "./StickyChatInput";
 const CURRENT_USER_ID = 3;
 const CHAT_API_URL =
   "https://tighter-autodidactic-cristin.ngrok-free.dev/ai-v2/chat";
+const CHAT_AUDIO_API_URL =
+  "https://tighter-autodidactic-cristin.ngrok-free.dev/ai-v2/audio";
 const CHAT_HISTORY_API_URL = `https://tighter-autodidactic-cristin.ngrok-free.dev/ai-v2/history/${CURRENT_USER_ID}`;
 
 export default function ChatScreen({ chatId }: { chatId: number }) {
-  const router = useRouter();
+  const audioSoundRef = useRef<Audio.Sound | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -55,6 +58,20 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
     };
   }, [chatId]);
 
+  useEffect(() => {
+    if (isAudioEnabled) {
+      return;
+    }
+
+    void unloadAudio(audioSoundRef);
+  }, [isAudioEnabled]);
+
+  useEffect(() => {
+    return () => {
+      void unloadAudio(audioSoundRef);
+    };
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim()) return;
 
@@ -84,6 +101,10 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         ...prev,
         { role: "assistant", text: data.message, ui: data.ui },
       ]);
+
+      if (isAudioEnabled) {
+        await playAssistantAudio(audioSoundRef, chatId);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -113,6 +134,10 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         ...prev,
         { role: "assistant", text: data.message, ui: data.ui },
       ]);
+
+      if (isAudioEnabled) {
+        await playAssistantAudio(audioSoundRef, chatId);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -130,9 +155,52 @@ export default function ChatScreen({ chatId }: { chatId: number }) {
         setInput={setInput}
         onSend={sendMessage}
         disabled={!isHistoryLoaded || isSending}
+        audioEnabled={isAudioEnabled}
+        onAudioEnabledChange={setIsAudioEnabled}
       />
     </>
   );
+}
+
+async function unloadAudio(soundRef: { current: Audio.Sound | null }) {
+  const sound = soundRef.current;
+  if (!sound) {
+    return;
+  }
+
+  soundRef.current = null;
+
+  try {
+    await sound.unloadAsync();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function playAssistantAudio(
+  soundRef: { current: Audio.Sound | null },
+  chatId: number,
+) {
+  if (!chatId) return;
+
+  try {
+    await unloadAudio(soundRef);
+    await Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      allowsRecordingIOS: false,
+    });
+
+    const { sound } = await Audio.Sound.createAsync(
+      {
+        uri: `${CHAT_AUDIO_API_URL}/${chatId}`,
+      },
+      { shouldPlay: true },
+    );
+
+    soundRef.current = sound;
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 function normalizeHistoryMessage(message: {

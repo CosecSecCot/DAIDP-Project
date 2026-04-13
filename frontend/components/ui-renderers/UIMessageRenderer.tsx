@@ -11,7 +11,7 @@ export default function UIMessageRenderer({
 }: {
   ui?: UIData;
   active: boolean;
-  onAction: (metadata?: any) => void;
+  onAction: (metadata?: any) => Promise<void>;
 }) {
   if (!ui) return null;
 

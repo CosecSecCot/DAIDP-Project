@@ -1,21 +1,31 @@
-import { Button, Spinner, useThemeColor } from "heroui-native";
-import { TextInput, View } from "react-native";
+import { useState } from "react";
+import { Button, Spinner, Switch, useThemeColor } from "heroui-native";
+import { Text, TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import { ArrowUp02Icon } from "@hugeicons/core-free-icons";
 import { StyledIcon } from "@/components/icons";
+
+type StickyChatInputProps = {
+  input: string;
+  setInput: (v: string) => void;
+  onSend: () => void;
+  disabled?: boolean;
+  audioEnabled?: boolean;
+  onAudioEnabledChange?: (enabled: boolean) => void;
+};
 
 export default function StickyChatInput({
   input,
   setInput,
   onSend,
   disabled = false,
-}: {
-  input: string;
-  setInput: (v: string) => void;
-  onSend: () => void;
-  disabled?: boolean;
-}) {
+  audioEnabled,
+  onAudioEnabledChange,
+}: StickyChatInputProps) {
   const placeholderColor = useThemeColor("field-placeholder");
+  const [localAudioEnabled, setLocalAudioEnabled] = useState(false);
+  const isAudioEnabled = audioEnabled ?? localAudioEnabled;
+  const handleAudioToggle = onAudioEnabledChange ?? setLocalAudioEnabled;
 
   return (
     <KeyboardStickyView
@@ -33,7 +43,22 @@ export default function StickyChatInput({
           placeholderTextColor={placeholderColor}
           className="text-foreground text-base"
         />
-        <View className="items-end">
+        <View className="flex-row items-center justify-between gap-4">
+          <View className="flex-row items-center gap-3">
+            <Switch
+              isSelected={isAudioEnabled}
+              onSelectedChange={handleAudioToggle}
+              isDisabled={disabled}
+            />
+            <View className="gap-0.5">
+              <Text className="text-foreground text-sm font-medium">
+                Audio replies
+              </Text>
+              <Text className="text-foreground/60 text-xs">
+                Play assistant responses automatically
+              </Text>
+            </View>
+          </View>
           <Button
             size="md"
             variant="outline"

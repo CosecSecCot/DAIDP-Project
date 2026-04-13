@@ -1,5 +1,6 @@
 import { StyledIcon } from "@/components/icons";
 import {
+  Appointment01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Search01Icon,
@@ -7,7 +8,13 @@ import {
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Avatar, Button, ScrollShadow, Skeleton } from "heroui-native";
+import {
+  Avatar,
+  Button,
+  ScrollShadow,
+  Separator,
+  Skeleton,
+} from "heroui-native";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
@@ -99,6 +106,20 @@ export default function MenuScreen(props: DrawerContentComponentProps) {
             contentContainerStyle={{ paddingBottom: 20 }}
           >
             <View className="h-[10vh]" />
+            <View className="mb-4">
+              <Button
+                variant="tertiary"
+                onPress={() => router.replace("/appointments")}
+              >
+                <StyledIcon
+                  icon={Appointment01Icon}
+                  size={20}
+                  themeColor="foreground"
+                />
+                <Button.Label>View Appointments</Button.Label>
+              </Button>
+            </View>
+            <Separator className="mb-4" />
             <Text className="font-bold text-xl text-foreground mb-4">
               Recents
             </Text>

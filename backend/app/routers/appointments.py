@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form
+from pathlib import Path
+import mimetypes
+
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -121,6 +125,27 @@ def get_patient_appointment_document(
     current_user = Depends(any_authenticated)
 ):
     return get_patient_appointment_document_by_id(patient_id, document_id, db)
+
+
+@router.get("/appointments/patient/{patient_id}/documents/{document_id}/file")
+def get_patient_appointment_document_file(
+    patient_id: int,
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(any_authenticated)
+):
+    document = get_patient_appointment_document_by_id(patient_id, document_id, db)
+    file_path = Path(document.file_url)
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    media_type, _ = mimetypes.guess_type(document.file_name)
+    return FileResponse(
+        path=file_path,
+        filename=document.file_name,
+        media_type=media_type or "application/octet-stream"
+    )
 
 
 @router.delete("/appointments/patient/{patient_id}/documents/{document_id}")

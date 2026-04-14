@@ -122,6 +122,7 @@ class LabTestResponse(BaseModel):
 
 class DocumentCreate(BaseModel):
     patient_id    : int
+    appointment_id: Optional[int]         = None
     record_id     : Optional[int]         = None
     uploaded_by   : UploadedBy
     file_name     : str
@@ -131,6 +132,7 @@ class DocumentCreate(BaseModel):
 
 class DocumentUploadCreate(BaseModel):
     patient_id    : int
+    appointment_id: Optional[int]         = None
     record_id     : Optional[int]         = None
     uploaded_by   : UploadedBy
     document_type : Optional[DocumentType] = None
@@ -139,6 +141,7 @@ class DocumentUploadCreate(BaseModel):
 class DocumentResponse(BaseModel):
     id            : int
     patient_id    : int
+    appointment_id: Optional[int]
     record_id     : Optional[int]
     uploaded_by   : UploadedBy
     file_name     : str

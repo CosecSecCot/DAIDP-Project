@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Text,
-    Date, DateTime, Enum as SAEnum, Boolean
+    Date, DateTime, Enum as SAEnum, Boolean, ForeignKey
 )
 from app.config.database import Base
 from datetime import datetime
@@ -76,6 +76,7 @@ class Document(Base):
 
     id            = Column(Integer, primary_key=True, autoincrement=True)
     patient_id    = Column(Integer, nullable=False)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True, index=True)
     record_id     = Column(Integer)
     uploaded_by   = Column(SAEnum(UploadedBy), nullable=False)
     file_name     = Column(String(255), nullable=False)

@@ -55,7 +55,7 @@ async def save_upload_file(file: UploadFile, file_type: str = "documents") -> st
         )
 
 
-async def delete_upload_file(file_path: str) -> bool:
+def delete_upload_file(file_path: str) -> bool:
     """Delete a previously uploaded file."""
     try:
         full_path = Path(file_path)

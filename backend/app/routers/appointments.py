@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -12,6 +12,7 @@ from app.schemas.appointment import (
     RecurringCreate, RecurringResponse,
     WaitlistCreate, WaitlistUpdate, WaitlistResponse
 )
+from app.schemas.medical import DocumentResponse
 from app.controllers.appointment_controller import (
     create_appointment, get_all_appointments, get_appointment_by_id,
     get_appointments_by_doctor, get_appointments_by_patient,
@@ -19,6 +20,12 @@ from app.controllers.appointment_controller import (
     create_recurring_series, get_recurring_series, cancel_recurring_series,
     add_to_waitlist, get_all_waitlist, get_waitlist_entry,
     get_waitlist_by_doctor, update_waitlist_entry, remove_from_waitlist
+)
+from app.controllers.medical_controller import (
+    delete_patient_appointment_document,
+    get_appointment_documents_by_patient,
+    get_patient_appointment_document_by_id,
+    upload_document_file,
 )
 
 router = APIRouter(tags=["Appointments"])
@@ -73,6 +80,57 @@ def by_patient(
     current_user = Depends(any_authenticated)
 ):
     return get_appointments_by_patient(patient_id, db)
+
+
+@router.get("/appointments/patient/{patient_id}/documents", response_model=List[DocumentResponse])
+def get_patient_appointment_documents(
+    patient_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(any_authenticated)
+):
+    return get_appointment_documents_by_patient(patient_id, db)
+
+
+@router.post("/appointments/patient/{patient_id}/documents", response_model=DocumentResponse, status_code=201)
+async def upload_patient_appointment_document(
+    patient_id: int,
+    appointment_id: int = Form(...),
+    file: UploadFile = File(...),
+    uploaded_by: str = Form(...),
+    record_id: int = Form(None),
+    document_type: str = Form(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(any_authenticated)
+):
+    return await upload_document_file(
+        patient_id=patient_id,
+        appointment_id=appointment_id,
+        file=file,
+        uploaded_by=uploaded_by,
+        record_id=record_id,
+        document_type=document_type,
+        db=db
+    )
+
+
+@router.get("/appointments/patient/{patient_id}/documents/{document_id}", response_model=DocumentResponse)
+def get_patient_appointment_document(
+    patient_id: int,
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(any_authenticated)
+):
+    return get_patient_appointment_document_by_id(patient_id, document_id, db)
+
+
+@router.delete("/appointments/patient/{patient_id}/documents/{document_id}")
+def delete_patient_appointment_document_route(
+    patient_id: int,
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(admin_doctor_staff)
+):
+    return delete_patient_appointment_document(patient_id, document_id, db)
 
 
 # Admin, doctor, staff can update

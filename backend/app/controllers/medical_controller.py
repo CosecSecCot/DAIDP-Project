@@ -3,6 +3,7 @@ from fastapi import HTTPException, status, UploadFile
 from datetime import datetime
 
 from app.models.medical import MedicalRecord, Diagnosis, LabTest, Document
+from app.models.appointment import Appointment
 from app.models.prescription import Prescription, PrescriptionItem
 from app.schemas.medical import (
     MedicalRecordCreate, MedicalRecordUpdate,
@@ -15,6 +16,19 @@ from app.schemas.prescription import (
     PrescriptionItemCreate, PrescriptionItemUpdate
 )
 from app.config.file_upload import save_upload_file, delete_upload_file
+
+
+def _get_patient_appointment(patient_id: int, appointment_id: int, db: Session) -> Appointment:
+    appointment = db.query(Appointment).filter(
+        Appointment.id == appointment_id,
+        Appointment.patient_id == patient_id
+    ).first()
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment not found for this patient"
+        )
+    return appointment
 
 
 # ── Medical Records ───────────────────────────────────────────────────────────
@@ -184,8 +198,12 @@ def delete_lab_test(record_id: int, lab_test_id: int, db: Session):
 # ── Documents ─────────────────────────────────────────────────────────────────
 
 def upload_document(data: DocumentCreate, db: Session):
+    if data.appointment_id is not None:
+        _get_patient_appointment(data.patient_id, data.appointment_id, db)
+
     document = Document(
         patient_id    = data.patient_id,
+        appointment_id = data.appointment_id,
         record_id     = data.record_id,
         uploaded_by   = data.uploaded_by,
         file_name     = data.file_name,
@@ -204,6 +222,13 @@ def get_documents_by_patient(patient_id: int, db: Session):
     ).order_by(Document.uploaded_at.desc()).all()
 
 
+def get_appointment_documents_by_patient(patient_id: int, db: Session):
+    return db.query(Document).filter(
+        Document.patient_id == patient_id,
+        Document.appointment_id.isnot(None)
+    ).order_by(Document.uploaded_at.desc()).all()
+
+
 def get_document_by_id(document_id: int, db: Session):
     document = db.query(Document).filter(
         Document.id == document_id
@@ -216,8 +241,33 @@ def get_document_by_id(document_id: int, db: Session):
     return document
 
 
+def get_patient_appointment_document_by_id(patient_id: int, document_id: int, db: Session):
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.patient_id == patient_id,
+        Document.appointment_id.isnot(None)
+    ).first()
+    if not document:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment document not found"
+        )
+    return document
+
+
 def delete_document(document_id: int, db: Session):
     document = get_document_by_id(document_id, db)
+    if document.file_url:
+        delete_upload_file(document.file_url)
+    db.delete(document)
+    db.commit()
+    return {"message": "Document deleted"}
+
+
+def delete_patient_appointment_document(patient_id: int, document_id: int, db: Session):
+    document = get_patient_appointment_document_by_id(patient_id, document_id, db)
+    if document.file_url:
+        delete_upload_file(document.file_url)
     db.delete(document)
     db.commit()
     return {"message": "Document deleted"}
@@ -344,6 +394,7 @@ async def upload_document_file(
     patient_id: int,
     file: UploadFile,
     uploaded_by: str,
+    appointment_id: int = None,
     record_id: int = None,
     document_type: str = None,
     db: Session = None
@@ -362,12 +413,16 @@ async def upload_document_file(
     Returns:
         Created Document object
     """
+    if appointment_id is not None:
+        _get_patient_appointment(patient_id, appointment_id, db)
+
     # Save file to disk
     file_path = await save_upload_file(file, file_type="documents")
     
     # Create document record in DB
     document = Document(
         patient_id    = patient_id,
+        appointment_id = appointment_id,
         record_id     = record_id,
         uploaded_by   = uploaded_by,
         file_name     = file.filename,

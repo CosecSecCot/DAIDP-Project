@@ -48,7 +48,7 @@ class ActionSpec:
     when_to_use: str
     input_model: Type[BaseModel]
     output_model: Type[BaseModel]
-    executor: Callable[[BaseModel], BaseModel]
+    executor: Callable[[Any], Any]
     examples: List[RegistryExample] = field(default_factory=list)
     notes: List[str] = field(default_factory=list)
 
@@ -213,10 +213,23 @@ def build_system_prompt(*, warmup_mode: bool = False) -> str:
         "- Use picker when the user must choose among options.\n"
         "- Use alert when you need to confirm, inform, warn, or refuse.\n"
         "- In the beginning of a chat, keep the conversation plain and natural.\n"
+        "- Your primary goal is to understand the user's problem with sufficient context before taking action.\n"
+        "- Prefer gathering sufficient useful context (not excessive) that would help a doctor understand the case before acting, unless user intent is explicit.\n"
+        "- If the user is describing symptoms, issues, or vague problems, ask 1-2 short clarifying questions before calling tools.\n"
+        "- For medical/problem descriptions, prefer collecting richer context (2-4 short questions if needed), not just one.\n"
+        "- Balance depth with user friction. Stop when context is sufficient, not maximal.\n"
+        "- Do not delay actions when sufficient information is already available.\n"
+        "- Booking an appointment is NOT an immediate action. It requires sufficient context about the user's problem.\n"
+        "- If the user wants to book an appointment, first gather relevant context that would be useful for a doctor.\n"
+        "- Ask focused follow-up questions such as symptoms, duration, severity, prior history, or urgency.\n"
+        "- Only proceed to search slots or booking after sufficient context is collected.\n"
+        "- Do not rush into slot search unless the user explicitly skips questions.\n"
+        "- If the user explicitly says to skip questions or proceed quickly, reduce questions and act.\n"
         "- Ask a short follow-up question or two before showing appointment slots.\n"
         "- Only ask simple, human front-desk style questions at first, such as the main problem, duration, or urgency.\n"
         "- Tell the user they can skip the questions if they prefer, but the questions help you guide them better.\n"
         "- Do not show a picker in the warm-up phase unless the user explicitly asks to see options right away.\n"
+        "- If the user intent is explicit (booking doesn't count as explicit intent, unless enforced by user), act immediately instead of waiting for more context.\n"
         "- User should think that they are talking to an actual front desk assistant.\n\n"
         "Registered UI components:\n"
         f"{chr(10).join(ui_lines)}\n\n"
@@ -303,6 +316,11 @@ def _register_defaults() -> None:
     from app.controllers.agent_actions.find_appointment_slots import (
         execute_find_appointment_slots,
     )
+    from app.controllers.agent_actions.get_user_appointments import (
+        execute_get_user_appointments,
+        GetUserAppointmentsInput,
+        GetUserAppointmentsOutput
+    )
     from app.controllers.agent_actions.book_appointment import execute_book_appointment
     from app.controllers.agent_actions.cancel_appointment import (
         execute_cancel_appointment,
@@ -337,6 +355,47 @@ def _register_defaults() -> None:
                                 "value": "slot_1",
                             }
                         ],
+                    },
+                )
+            ],
+        )
+    )
+
+    register_action(
+        ActionSpec(
+            name="get_user_appointments",
+            purpose="Fetch all appointments for a user to help identify, review, or manage them. Use this to see appointments when appointment_id is not provided.",
+            when_to_use="Use when the user refers to an appointment without providing an appointment_id (e.g., by doctor name, time, or date), or when the assistant needs to resolve which appointment to act on.",
+            input_model=GetUserAppointmentsInput,
+            output_model=GetUserAppointmentsOutput,
+            executor=execute_get_user_appointments,
+            notes=[
+                "Use this before cancel_appointment if the appointment_id is unknown.",
+                "Return all appointments and let the assistant match based on context like doctor name or time.",
+                "Do not assume or hallucinate appointment_id.",
+            ],
+            examples=[
+                RegistryExample(
+                    scenario="Fetch all appointments for a user",
+                    input={
+                        "patient_id": 12
+                    },
+                    output={
+                        "summary": "Found 2 appointments for the user.",
+                        "appointments": [
+                            {
+                                "appointment_id": 101,
+                                "doctor_id": 5,
+                                "scheduled_at": "2026-04-15T10:00:00",
+                                "status": "scheduled"
+                            },
+                            {
+                                "appointment_id": 102,
+                                "doctor_id": 8,
+                                "scheduled_at": "2026-04-16T14:30:00",
+                                "status": "scheduled"
+                            }
+                        ]
                     },
                 )
             ],

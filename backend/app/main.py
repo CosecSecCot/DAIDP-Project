@@ -13,11 +13,19 @@ from app.routers import (
     ai_v2,
     nearby,
 )
-
+from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Hospital Network API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["http://localhost:3000"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(hospitals.router)
@@ -29,6 +37,7 @@ app.include_router(medical.router)
 app.include_router(billing.router)
 app.include_router(ai_v2.router)
 app.include_router(nearby.router)
+
 
 @app.get("/")
 def root():

@@ -111,12 +111,15 @@ def build_openai_tools() -> List[Dict[str, Any]]:
     tools: List[Dict[str, Any]] = []
 
     for action in ACTION_REGISTRY.values():
+        notes_str = "\n".join(f"- {actn}" for actn in action.notes)
         tools.append(
             {
                 "type": "function",
                 "function": {
                     "name": action.name,
-                    "description": action.purpose,
+                    "description": f"Purpose:\n{action.purpose}\n"
+                    f"When to use:\n{action.when_to_use}\n"
+                    f"Notes:\n{notes_str}",
                     "parameters": action.input_schema,
                 },
             }
@@ -208,7 +211,8 @@ def build_system_prompt(*, warmup_mode: bool = False) -> str:
         "- Do not use any hidden state machine or hard-coded intent keywords.\n"
         "- Do not invent tools, UI components, or output fields that are not in the registry.\n"
         "- Use the tools as a ReAct loop: think, call a tool if needed, then continue until ready to answer.\n"
-        "- Use at most one backend action per turn unless the model is explicitly gathering information.\n"
+        # "- Use at most one backend action per turn unless the model is explicitly gathering information.\n"
+        "- Prefer one backend action per turn unless multiple steps are required to complete the user's request.\n"
         "- When you are ready to answer the user, you MUST call respond_to_user.\n"
         "- Use picker when the user must choose among options.\n"
         "- Use alert when you need to confirm, inform, warn, or refuse.\n"
@@ -231,6 +235,25 @@ def build_system_prompt(*, warmup_mode: bool = False) -> str:
         "- Do not show a picker in the warm-up phase unless the user explicitly asks to see options right away.\n"
         "- If the user intent is explicit (booking doesn't count as explicit intent, unless enforced by user), act immediately instead of waiting for more context.\n"
         "- User should think that they are talking to an actual front desk assistant.\n\n"
+
+        "--- Documents handling ---\n"
+        "- Users may ask to view, open, or understand their medical documents or reports.\n"
+        "- Use get_user_appointment_documents to fetch available documents.\n"
+        "- If the user refers to a specific document (e.g., 'latest report', 'blood test', 'MRI'), first fetch documents and then identify the most relevant one.\n"
+        "- Prefer the most recent document when the user says 'latest' or does not specify.\n"
+        "- Use file names and document types to infer relevance (e.g., 'blood', 'MRI', 'prescription').\n"
+        "- If the user wants to open or view a document, retrieve its file using the appropriate endpoint.\n"
+        "- If the user wants a summary or explanation, retrieve the document content and summarize it clearly.\n"
+        "- Do not hallucinate document content. Always retrieve before summarizing.\n"
+        "- Document interactions may require multiple DIFFERENT actions, but do not repeat the same action unless new information is needed.\n"
+        "- If relevant documents are successfully retrieved, do NOT call the same action again. Proceed to respond_to_user.\n\n"
+        "- To understand or summarize a document, you MUST first use read_document.\n"
+        "- Do NOT guess or hallucinate document contents.\n"
+        "- After reading the document, summarize the key medical information clearly.\n"
+        "- After a successful read_document call, DO NOT call read_document again for the same document.\n"
+        "- Proceed directly to respond_to_user with a summary or explanation.\n"
+        "- If the text is long, focus on important medical values, diagnoses, and findings.\n\n"
+
         "Registered UI components:\n"
         f"{chr(10).join(ui_lines)}\n\n"
         "Registered actions:\n"
@@ -324,6 +347,16 @@ def _register_defaults() -> None:
     from app.controllers.agent_actions.book_appointment import execute_book_appointment
     from app.controllers.agent_actions.cancel_appointment import (
         execute_cancel_appointment,
+    )
+    from app.controllers.agent_actions.get_user_documents import (
+        execute_get_user_appointment_documents,
+        GetUserAppointmentDocumentsInput,
+        GetUserAppointmentDocumentsOutput
+    )
+    from app.controllers.agent_actions.read_document import (
+        execute_read_document,
+        ReadDocumentInput,
+        ReadDocumentOutput
     )
     from app.controllers.agent_actions.get_user_info import execute_get_user_info
 
@@ -451,6 +484,66 @@ def _register_defaults() -> None:
                     output={
                         "summary": "Appointment cancelled successfully.",
                         "appointment_id": 101,
+                    },
+                )
+            ],
+        )
+    )
+
+    register_action(
+        ActionSpec(
+            name="get_user_appointment_documents",
+            purpose="Fetch all documents uploaded for the user's appointments.",
+            when_to_use="Use when the user asks to view, list, or access their medical documents or reports.",
+            input_model=GetUserAppointmentDocumentsInput,
+            output_model=GetUserAppointmentDocumentsOutput,
+            executor=execute_get_user_appointment_documents,
+            notes=[
+                "Returns documents sorted by most recent.",
+                "Does not include file content, only metadata."
+            ],
+            examples=[
+                RegistryExample(
+                    scenario="User asks to see their reports",
+                    input={"patient_id": 3},
+                    output={
+                        "summary": "Found 2 appointment document(s).",
+                        "documents": [
+                            {
+                                "id": 1,
+                                "file_name": "blood_report.pdf"
+                            }
+                        ]
+                    }
+                )
+            ],
+        )
+    )
+
+    register_action(
+        ActionSpec(
+            name="read_document",
+            purpose="Read and extract text from a medical document (PDF or image).",
+            when_to_use="Use when the user wants to view, understand, or summarize a document.",
+            input_model=ReadDocumentInput,
+            output_model=ReadDocumentOutput,
+            executor=execute_read_document,
+            notes=[
+                "Supports PDF and image files.",
+                "Returns extracted text (may be truncated).",
+                "Use before summarizing document contents.",
+            ],
+            examples=[
+                RegistryExample(
+                    scenario="Read a report",
+                    input={
+                        "patient_id": 3,
+                        "document_id": 12
+                    },
+                    output={
+                        "summary": "Document text extracted successfully.",
+                        "text": "Hemoglobin: 13.5 g/dL...",
+                        "truncated": False
                     },
                 )
             ],

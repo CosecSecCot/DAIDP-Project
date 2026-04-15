@@ -10,15 +10,18 @@ import { TextInput, View } from "react-native";
 import { KeyboardStickyView } from "react-native-keyboard-controller";
 import {
   ArrowUp02Icon,
-  AttachmentIcon,
   Mic02Icon,
   MicOff02Icon,
   MoreHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 import { StyledIcon } from "@/components/icons";
 import { useAudioSettings } from "@/context/audio-settings";
-import { Dispatch, SetStateAction, useCallback, useState } from "react";
-import { useSpeechToText } from "@/hooks/useSpeechToText";
+import { Dispatch, SetStateAction, useCallback, useRef, useState } from "react";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
+import { useFocusEffect } from "expo-router";
 
 type StickyChatInputProps = {
   input: string;
@@ -35,25 +38,82 @@ export default function StickyChatInput({
 }: StickyChatInputProps) {
   const placeholderColor = useThemeColor("field-placeholder");
 
-  // Memoize to prevent hook from resetting
-  const handleFinalResult = useCallback(
-    (text: string) => {
-      setInput((prev) => {
-        const spacing = prev.length > 0 && !prev.endsWith(" ") ? " " : "";
-        return `${prev}${spacing}${text}`;
-      });
-    },
-    [setInput],
-  );
+  const [isRecording, setIsRecording] = useState(false);
+  const transcriptTallyRef = useRef("");
+  const hasCommittedRef = useRef(false);
 
-  const speech = useSpeechToText({
-    onFinalResult: handleFinalResult,
+  useSpeechRecognitionEvent("start", () => {
+    setIsRecording(true);
+    transcriptTallyRef.current = "";
+    hasCommittedRef.current = false;
   });
 
-  // Combine fixed input with live preview
-  const displayValue = speech.isRecording
-    ? `${input}${input && speech.transcript ? " " : ""}${speech.transcript}`
-    : input;
+  useSpeechRecognitionEvent("result", (ev) => {
+    const transcript = ev.results[0]?.transcript || "";
+
+    if (ev.isFinal) {
+      // ✅ Only accumulate FINAL chunks
+      transcriptTallyRef.current += transcript;
+    }
+  });
+
+  useSpeechRecognitionEvent("end", () => {
+    setIsRecording(false);
+
+    // ✅ Prevent duplicate commits (VERY IMPORTANT)
+    if (hasCommittedRef.current) return;
+    hasCommittedRef.current = true;
+
+    const finalText = transcriptTallyRef.current.trim();
+
+    if (finalText) {
+      setInput((prev) => {
+        const spacing = prev.length > 0 && !prev.endsWith(" ") ? " " : "";
+        return prev + spacing + finalText;
+      });
+    }
+
+    // reset
+    transcriptTallyRef.current = "";
+  });
+
+  useSpeechRecognitionEvent("error", () => {
+    setIsRecording(false);
+    transcriptTallyRef.current = "";
+  });
+
+  const start = async () => {
+    if (isRecording) return;
+
+    const permission =
+      await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+
+    if (!permission.granted) return;
+
+    ExpoSpeechRecognitionModule.start({
+      lang: "en-US",
+      interimResults: true,
+      continuous: false,
+    });
+  };
+
+  const stop = () => {
+    ExpoSpeechRecognitionModule.stop();
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      // when screen gains focus → reset
+      setInput("");
+      transcriptTallyRef.current = "";
+
+      return () => {
+        // when leaving screen → stop recognition
+        ExpoSpeechRecognitionModule.abort();
+        transcriptTallyRef.current = "";
+      };
+    }, []),
+  );
 
   return (
     <KeyboardStickyView
@@ -63,14 +123,14 @@ export default function StickyChatInput({
       <View className="bg-surface gap-4 p-4 pt-3 android:pb-safe-offset-0 rounded-t-3xl ios:rounded-b-3xl ios:border ios:border-border">
         <TextInput
           multiline
-          placeholder="Ask me anything..."
-          value={displayValue}
+          placeholder={isRecording ? "Recording..." : "Ask me anything or use your voice..."}
+          value={input}
           onChangeText={(text) => {
             // Prevent manual typing from clobbering the state while recording
-            if (!speech.isRecording) setInput(text);
+            if (!isRecording) setInput(text);
           }}
           onSubmitEditing={onSend}
-          editable={!disabled && !speech.isRecording}
+          editable={!disabled && !isRecording}
           placeholderTextColor={placeholderColor}
           className="text-foreground text-base"
         />
@@ -81,14 +141,14 @@ export default function StickyChatInput({
               size="md"
               variant="outline"
               isIconOnly
-              onPress={speech.isRecording ? speech.stop : speech.start}
+              onPress={isRecording ? stop : start}
               isDisabled={disabled}
               className="bg-surface-secondary shadow-2xl"
             >
               <StyledIcon
-                icon={speech.isRecording ? MicOff02Icon : Mic02Icon}
+                icon={isRecording ? MicOff02Icon : Mic02Icon}
                 size={24}
-                themeColor={speech.isRecording ? "danger" : "foreground"}
+                themeColor={isRecording ? "danger" : "foreground"}
               />
             </Button>
           </View>
@@ -141,26 +201,8 @@ function SettingsSheet() {
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
         <BottomSheet.Content>
+          <BottomSheet.Title className="text-center">Options</BottomSheet.Title>
           <ListGroup className="mb-4">
-            <ListGroup.Item
-              onPress={() => {
-                console.log("Attached Files");
-              }}
-            >
-              <ListGroup.ItemPrefix>
-                <StyledIcon
-                  icon={AttachmentIcon}
-                  size={24}
-                  themeColor="foreground"
-                />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>Attach Files</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>
-                  Upload any files or documents
-                </ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-            </ListGroup.Item>
             <ControlField
               isSelected={audioEnabled}
               onSelectedChange={setAudioEnabled}

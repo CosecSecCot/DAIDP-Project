@@ -1,8 +1,10 @@
 import { StyledIcon } from "@/components/icons";
 import {
+  Add01Icon,
   Appointment01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  Cancel01Icon,
   Search01Icon,
 } from "@hugeicons/core-free-icons";
 import { DrawerContentComponentProps } from "@react-navigation/drawer";
@@ -71,30 +73,40 @@ export default function MenuScreen(props: DrawerContentComponentProps) {
             className="bg-surface"
             onPress={() => props.navigation.closeDrawer()}
           >
-            <StyledIcon
-              icon={ArrowLeft01Icon}
-              size={28}
-              themeColor="foreground"
-            />
+            <StyledIcon icon={Cancel01Icon} size={28} themeColor="foreground" />
           </Button>
           <View className="flex-row gap-2">
             <Button
               size="md"
               variant="outline"
-              isIconOnly
               className="bg-surface"
+              onPress={() => router.replace("/")}
             >
-              <StyledIcon
-                icon={Search01Icon}
-                size={20}
-                themeColor="foreground"
-              />
+              <StyledIcon icon={Add01Icon} size={20} themeColor="foreground" />
+              <Button.Label>New Chat</Button.Label>
             </Button>
             <Avatar alt="user profile">
               <Avatar.Fallback>AB</Avatar.Fallback>
             </Avatar>
           </View>
         </View>
+
+        <View className="h-[10vh]" />
+        <View className="mb-4 items-start">
+          <Button
+            variant="tertiary"
+            onPress={() => router.replace("/appointments")}
+          >
+            <StyledIcon
+              icon={Appointment01Icon}
+              size={20}
+              themeColor="foreground"
+            />
+            <Button.Label>View Appointments</Button.Label>
+          </Button>
+        </View>
+        <Separator className="mb-4" />
+        <Text className="font-bold text-xl text-foreground mb-4">Recents</Text>
 
         <ScrollShadow
           LinearGradientComponent={LinearGradient}
@@ -105,27 +117,9 @@ export default function MenuScreen(props: DrawerContentComponentProps) {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 20 }}
           >
-            <View className="h-[10vh]" />
-            <View className="mb-4">
-              <Button
-                variant="tertiary"
-                onPress={() => router.replace("/appointments")}
-              >
-                <StyledIcon
-                  icon={Appointment01Icon}
-                  size={20}
-                  themeColor="foreground"
-                />
-                <Button.Label>View Appointments</Button.Label>
-              </Button>
-            </View>
-            <Separator className="mb-4" />
-            <Text className="font-bold text-xl text-foreground mb-4">
-              Recents
-            </Text>
             <View className="gap-4">
               {areChatsLoaded
-                ? chats.map((chat, idx) => (
+                ? [...chats, ...chats].map((chat, idx) => (
                     <Pressable
                       key={idx}
                       onPress={() => router.replace(`/chats/${chat.id}`)}

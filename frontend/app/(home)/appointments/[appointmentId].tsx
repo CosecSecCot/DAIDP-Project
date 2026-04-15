@@ -124,7 +124,7 @@ export default function AppointmentRoute() {
 
           <View className="flex-row gap-2 flex-wrap">
             <Chip>{appointment.type}</Chip>
-            <Chip color="accent">{appointment.status}</Chip>
+            <Chip color={appointment.status === "cancelled" ? "danger" : "accent"}>{appointment.status}</Chip>
           </View>
 
           <Text className="text-foreground">

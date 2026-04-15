@@ -1,7 +1,7 @@
 import { Appointment } from "@/types/appointment";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Button, Card, ScrollShadow, Spinner } from "heroui-native";
+import { Button, Card, Chip, ScrollShadow, Spinner } from "heroui-native";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
@@ -92,9 +92,10 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
             <Card.Title>Hospital #{appointment.hospital_id}</Card.Title>
           </View>
 
-          <Card.Description>
-            Type: {appointment.type} | Status: {appointment.status}
-          </Card.Description>
+          <View className="flex-row gap-2 flex-wrap">
+            <Chip>{appointment.type}</Chip>
+            <Chip color={appointment.status === "cancelled" ? "danger" : "accent"}>{appointment.status}</Chip>
+          </View>
         </Card.Body>
 
         <Card.Footer className="gap-3 items-end">

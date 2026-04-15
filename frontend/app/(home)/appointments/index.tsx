@@ -1,8 +1,8 @@
 import { Appointment } from "@/types/appointment";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Button, Card, ScrollShadow, Spinner } from "heroui-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 const CURRENT_USER_ID = 3;
@@ -12,39 +12,41 @@ export default function AppointmentsRoute() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [areAppointmentsLoaded, setAreAppointmentsLoaded] = useState(false);
 
-  useEffect(() => {
-    let isActive = true;
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-    const loadAppointments = async () => {
-      setAreAppointmentsLoaded(false);
+      const loadAppointments = async () => {
+        setAreAppointmentsLoaded(false);
 
-      try {
-        const res = await fetch(APPOINTMENTS_API_URL);
+        try {
+          const res = await fetch(APPOINTMENTS_API_URL);
 
-        if (!res.ok) {
-          throw new Error(`Failed to load appointments: ${res.status}`);
+          if (!res.ok) {
+            throw new Error(`Failed to load appointments: ${res.status}`);
+          }
+
+          const appointments = (await res.json()) as Appointment[];
+
+          if (!isActive) return;
+
+          setAppointments(appointments);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          if (isActive) {
+            setAreAppointmentsLoaded(true);
+          }
         }
+      };
 
-        const appointments = (await res.json()) as Appointment[];
+      loadAppointments();
 
-        if (!isActive) return;
-
-        setAppointments(appointments);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (isActive) {
-          setAreAppointmentsLoaded(true);
-        }
-      }
-    };
-
-    loadAppointments();
-
-    return () => {
-      isActive = false;
-    };
-  }, []);
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   return (
     <View className="flex-1 pb-safe-offset-4 pt-4 px-4 bg-background">
@@ -97,7 +99,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
 
         <Card.Footer className="gap-3 items-end">
           <Button
-            variant="ghost"
+            variant="secondary"
             onPress={() => router.push(`/appointments/${appointment.id}`)}
           >
             <Button.Label>View Details</Button.Label>

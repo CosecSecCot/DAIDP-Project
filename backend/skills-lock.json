@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "openai-api-development": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "computedHash": "6829504dc0198d8176c8b5017eef933e0f31d5b8f60250d00a186299fe2449a1"
+    }
+  }
+}

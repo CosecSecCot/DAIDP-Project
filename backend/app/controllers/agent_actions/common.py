@@ -73,8 +73,9 @@ def get_active_hospital_name(hospital: Hospital) -> str:
 
 
 def get_date_candidates(preferred: Optional[date], days_ahead: int = 7) -> list[date]:
+    today = datetime.today().date() + timedelta(days=1)
+    # if preferred and preferred >= today:
     if preferred:
         return [preferred]
-    today = datetime.utcnow().date()
     return [today + timedelta(days=offset) for offset in range(days_ahead)]
 

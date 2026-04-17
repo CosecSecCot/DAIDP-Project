@@ -28,6 +28,7 @@ def chat(request: ChatRequest) -> ChatResponse:
             chat_id=request.chat_id,
         )
     except Exception as exc:
+        print("CHAT ERROR: ", exc)
         raise HTTPException(status_code=500, detail=f"AI processing failed: {exc}") from exc
 
 

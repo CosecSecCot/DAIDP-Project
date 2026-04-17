@@ -101,7 +101,7 @@ def _build_messages(
                 build_system_prompt(warmup_mode=warmup_mode)
                 + "\n\nConversation context:\n"
                 + json.dumps(patient_context.model_dump(mode="json"), default=str)
-                + "\n\nThe user is not affiliated with any hospital. Do not assume otherwise."
+                # + "\n\nThe user is not affiliated with any hospital. Do not assume otherwise."
                 + (
                     "\n\nWarm-up mode is only a hint: prefer gathering as much useful context as possible "
                     "which could be useful when viewed by a doctor before acting, unless user intent is explicit."
@@ -270,6 +270,7 @@ def handle_chat_message(
         print(f"\n=== TOOL LOOP ITERATION {i} ===")
 
         completion = client.chat.completions.create(
+            # model="gpt-4o",
             model="gpt-4o-mini",
             messages=messages,
             tools=tools,

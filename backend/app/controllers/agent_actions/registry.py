@@ -211,8 +211,7 @@ def build_system_prompt(*, warmup_mode: bool = False) -> str:
         "- Do not use any hidden state machine or hard-coded intent keywords.\n"
         "- Do not invent tools, UI components, or output fields that are not in the registry.\n"
         "- Use the tools as a ReAct loop: think, call a tool if needed, then continue until ready to answer.\n"
-        # "- Use at most one backend action per turn unless the model is explicitly gathering information.\n"
-        "- Prefer one backend action per turn unless multiple steps are required to complete the user's request.\n"
+        "- Use at most one backend action per turn unless the model is explicitly gathering information.\n"
         "- When you are ready to answer the user, you MUST call respond_to_user.\n"
         "- Use picker when the user must choose among options.\n"
         "- Use alert when you need to confirm, inform, warn, or refuse.\n"
@@ -235,25 +234,19 @@ def build_system_prompt(*, warmup_mode: bool = False) -> str:
         "- Do not show a picker in the warm-up phase unless the user explicitly asks to see options right away.\n"
         "- If the user intent is explicit (booking doesn't count as explicit intent, unless enforced by user), act immediately instead of waiting for more context.\n"
         "- User should think that they are talking to an actual front desk assistant.\n\n"
-
-        "--- Documents handling ---\n"
-        "- Users may ask to view, open, or understand their medical documents or reports.\n"
-        "- Use get_user_appointment_documents to fetch available documents.\n"
-        "- If the user refers to a specific document (e.g., 'latest report', 'blood test', 'MRI'), first fetch documents and then identify the most relevant one.\n"
-        "- Prefer the most recent document when the user says 'latest' or does not specify.\n"
-        "- Use file names and document types to infer relevance (e.g., 'blood', 'MRI', 'prescription').\n"
-        "- If the user wants to open or view a document, retrieve its file using the appropriate endpoint.\n"
-        "- If the user wants a summary or explanation, retrieve the document content and summarize it clearly.\n"
-        "- Do not hallucinate document content. Always retrieve before summarizing.\n"
-        "- Document interactions may require multiple DIFFERENT actions, but do not repeat the same action unless new information is needed.\n"
-        "- If relevant documents are successfully retrieved, do NOT call the same action again. Proceed to respond_to_user.\n\n"
-        "- To understand or summarize a document, you MUST first use read_document.\n"
-        "- Do NOT guess or hallucinate document contents.\n"
-        "- After reading the document, summarize the key medical information clearly.\n"
-        "- After a successful read_document call, DO NOT call read_document again for the same document.\n"
-        "- Proceed directly to respond_to_user with a summary or explanation.\n"
-        "- If the text is long, focus on important medical values, diagnoses, and findings.\n\n"
-
+        "You ARE allowed to:\n"
+        "- Provide general information about medications\n"
+        "- Explain common uses and side effects\n"
+        "- Give non-personalized guidance\n"
+        "You MUST NOT:\n"
+        "- Prescribe medications\n"
+        "- Give personalized dosage\n"
+        "- Diagnose conditions\n"
+        "If the user asks general medication info:\n"
+        "→ Answer normally in simple terms\n"
+        "If the query is personalized or risky:\n"
+        "→ Provide general info + suggest consulting a doctor\n"
+        "DO NOT refuse unless absolutely necessary.\n\n"
         "Registered UI components:\n"
         f"{chr(10).join(ui_lines)}\n\n"
         "Registered actions:\n"
@@ -336,13 +329,18 @@ def _register_defaults() -> None:
         )
     )
 
+    from app.controllers.agent_actions.get_doctors import (
+        execute_get_doctors,
+        GetDoctorsInput,
+        GetDoctorsOutput
+    )
     from app.controllers.agent_actions.find_appointment_slots import (
         execute_find_appointment_slots,
     )
     from app.controllers.agent_actions.get_user_appointments import (
         execute_get_user_appointments,
         GetUserAppointmentsInput,
-        GetUserAppointmentsOutput
+        GetUserAppointmentsOutput,
     )
     from app.controllers.agent_actions.book_appointment import execute_book_appointment
     from app.controllers.agent_actions.cancel_appointment import (
@@ -351,14 +349,52 @@ def _register_defaults() -> None:
     from app.controllers.agent_actions.get_user_documents import (
         execute_get_user_appointment_documents,
         GetUserAppointmentDocumentsInput,
-        GetUserAppointmentDocumentsOutput
+        GetUserAppointmentDocumentsOutput,
     )
     from app.controllers.agent_actions.read_document import (
         execute_read_document,
         ReadDocumentInput,
-        ReadDocumentOutput
+        ReadDocumentOutput,
     )
     from app.controllers.agent_actions.get_user_info import execute_get_user_info
+
+    register_action(
+        ActionSpec(
+            name="get_doctors",
+            purpose="Fetch and recommend doctors so the user can choose one before selecting an appointment slot.",
+            when_to_use="Use when the user wants to book an appointment but has not selected a doctor, or when the user wants to browse or choose a doctor.",
+            input_model=GetDoctorsInput,
+            output_model=GetDoctorsOutput,
+            executor=execute_get_doctors,
+            notes=[
+                "Prefer using this before find_appointment_slots when doctor is not specified.",
+                "Results are ranked by relevance, availability, and experience.",
+                "Some doctors may be marked as '(Recommended)' or similar labels.",
+                "Always preserve and pass meta fields (doctor_id, hospital_id, department_id) for downstream actions.",
+            ],
+            examples=[
+                RegistryExample(
+                    scenario="User wants to book an appointment without specifying a doctor",
+                    input={
+                        "patient_id": 12,
+                        "specialisation": "cardiology",
+                        "city": "Delhi",
+                    },
+                    output={
+                        "summary": "Found 3 doctor(s).",
+                        "doctors": [
+                            {
+                                "doctor_id": 5,
+                                "doctor_name": "John Lee",
+                                "hospital_name": "City Hospital",
+                                "score": 24.0,
+                            }
+                        ],
+                    },
+                )
+            ],
+        )
+    )
 
     register_action(
         ActionSpec(
@@ -410,9 +446,7 @@ def _register_defaults() -> None:
             examples=[
                 RegistryExample(
                     scenario="Fetch all appointments for a user",
-                    input={
-                        "patient_id": 12
-                    },
+                    input={"patient_id": 12},
                     output={
                         "summary": "Found 2 appointments for the user.",
                         "appointments": [
@@ -420,15 +454,15 @@ def _register_defaults() -> None:
                                 "appointment_id": 101,
                                 "doctor_id": 5,
                                 "scheduled_at": "2026-04-15T10:00:00",
-                                "status": "scheduled"
+                                "status": "scheduled",
                             },
                             {
                                 "appointment_id": 102,
                                 "doctor_id": 8,
                                 "scheduled_at": "2026-04-16T14:30:00",
-                                "status": "scheduled"
-                            }
-                        ]
+                                "status": "scheduled",
+                            },
+                        ],
                     },
                 )
             ],
@@ -500,7 +534,7 @@ def _register_defaults() -> None:
             executor=execute_get_user_appointment_documents,
             notes=[
                 "Returns documents sorted by most recent.",
-                "Does not include file content, only metadata."
+                "Does not include file content, only metadata.",
             ],
             examples=[
                 RegistryExample(
@@ -508,13 +542,8 @@ def _register_defaults() -> None:
                     input={"patient_id": 3},
                     output={
                         "summary": "Found 2 appointment document(s).",
-                        "documents": [
-                            {
-                                "id": 1,
-                                "file_name": "blood_report.pdf"
-                            }
-                        ]
-                    }
+                        "documents": [{"id": 1, "file_name": "blood_report.pdf"}],
+                    },
                 )
             ],
         )
@@ -536,14 +565,11 @@ def _register_defaults() -> None:
             examples=[
                 RegistryExample(
                     scenario="Read a report",
-                    input={
-                        "patient_id": 3,
-                        "document_id": 12
-                    },
+                    input={"patient_id": 3, "document_id": 12},
                     output={
                         "summary": "Document text extracted successfully.",
                         "text": "Hemoglobin: 13.5 g/dL...",
-                        "truncated": False
+                        "truncated": False,
                     },
                 )
             ],

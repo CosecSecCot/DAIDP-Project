@@ -11,7 +11,7 @@ import {
 } from "@heroui/react";
 import { useEffect, useState } from "react";
 
-const CURRENT_DOCTOR_ID = 1;
+const CURRENT_DOCTOR_ID = 2;
 const APPOINTMENTS_API_URL = `http://localhost:8000/appointments/doctor/${CURRENT_DOCTOR_ID}`;
 
 // ---------------- TYPES ----------------
@@ -91,7 +91,7 @@ export default function Page() {
       <main className="py-6 px-4 w-3/4">
         <div className="flex flex-row justify-between gap-4">
           <div>
-            <h1 className="text-2xl">Welcome {"Jagjot Singh"}</h1>
+            <h1 className="text-2xl">Welcome Doctor</h1>
             <p className="text-muted">
               Today: {new Date().toLocaleDateString()}
             </p>

@@ -1,0 +1,45 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Version control and local tooling
+.git
+.github
+.vscode
+.idea
+.codex
+.agents
+
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+htmlcov/
+venv/
+.venv/
+env/
+ENV/
+
+# Build and package artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Local data, logs, and editor files
+logs/
+*.log
+*.swp
+*~
+.DS_Store
+
+# Database data and exports
+postgres_data/
+*.sql
+*.dump
+*.backup

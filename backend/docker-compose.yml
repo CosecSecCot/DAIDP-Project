@@ -1,34 +1,44 @@
 services:
   api:
-    build: . # Build the image from the Dockerfile in the current directory
-    container_name: daidp-backend
-    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@postgres:5432/mediqare_db}
+      UPLOAD_DIR: /app/uploads
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    volumes:
+      - ./app:/app/app
+      - uploads:/app/uploads
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
-      db:
-        condition: service_started
-    networks:
-      - api-network
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready')"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
 
-  db:
-    image: postgres:16-alpine
-    container_name: daidp-db
-    restart: unless-stopped
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mediqare_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data/ # Persist database data
-    env_file:
-      - .env
-    networks:
-      - api-network
-
-networks:
-  api-network:
-    driver: bridge
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   postgres_data:
+  uploads:

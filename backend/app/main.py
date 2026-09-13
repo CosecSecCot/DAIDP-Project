@@ -1,65 +1,50 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
-from app.config.database import engine, Base
-from app.routers import (
-    auth,
-    hospitals,
-    doctors,
-    staff,
-    patients,
-    appointments,
-    medical,
-    billing,
-    ai_v2,
-    nearby,
-)
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
-Base.metadata.create_all(bind=engine)
+from app.api.routes.conversations import router as conversations_router
+from app.api.routes.documents import router as documents_router
+from app.api.routes.scheduling import router as scheduling_router
+from app.core import checkpoint
+from app.core.config import settings
+from app.db.database import Base, SessionLocal, engine
+from app.db import models  # noqa: F401
+from app.seed import seed_development_data
+from app.services.documents import recover_pending_documents
 
-app = FastAPI(title="Hospital Network API", version="1.0.0")
 
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    await seed_development_data()
+    async with SessionLocal() as db:
+        await db.execute(text("SELECT 1"))
+    await recover_pending_documents()
+    await checkpoint.initialize_graph()
+    try:
+        yield
+    finally:
+        await checkpoint.close_graph()
+        await engine.dispose()
+
+
+app = FastAPI(title="MediQare API", version="0.2.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or ["http://localhost:3000"]
-    allow_credentials=True,
+    allow_origins=settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app.include_router(auth.router)
-app.include_router(hospitals.router)
-app.include_router(doctors.router)
-app.include_router(staff.router)
-app.include_router(patients.router)
-app.include_router(appointments.router)
-app.include_router(medical.router)
-app.include_router(billing.router)
-app.include_router(ai_v2.router)
-app.include_router(nearby.router)
+app.include_router(conversations_router, prefix="/api/v1")
+app.include_router(scheduling_router, prefix="/api/v1")
+app.include_router(documents_router, prefix="/api/v1")
 
 
-@app.get("/")
-def root():
-    return {"status": "Hospital API is running"}
-
-
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    schema = get_openapi(
-        title="Hospital Network API",
-        version="1.0.0",
-        routes=app.routes,
-    )
-    schema["components"]["securitySchemes"] = {
-        "BearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}
-    }
-    for path in schema["paths"].values():
-        for method in path.values():
-            method["security"] = [{"BearerAuth": []}]
-    app.openapi_schema = schema
-    return app.openapi_schema
-
-
-app.openapi = custom_openapi
+@app.get("/ready")
+async def ready():
+    async with SessionLocal() as db:
+        await db.execute(text("SELECT 1"))
+    return {"status": "ready"}

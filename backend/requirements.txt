@@ -1,17 +1,17 @@
 fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
+uvicorn[standard]
+
+# Configuration
+pydantic
+pydantic-settings
 python-dotenv
-passlib[bcrypt]
-python-jose[cryptography]
+
+# Database
+sqlalchemy[asyncio]
+asyncpg
 python-multipart
-email-validator
-bcrypt==4.0.1
-cryptography
-openai
-httpx
-gTTS
-pymupdf==1.24.9
-pytesseract==0.3.13
-Pillow==10.4.0
+pypdf
+
+# LangGraph / LangChain
+langgraph
+langchain-openai
